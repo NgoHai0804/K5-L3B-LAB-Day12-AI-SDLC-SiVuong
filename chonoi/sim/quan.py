@@ -1,9 +1,13 @@
-"""Buổi tối — Mở Quán (`quan`).
+"""Buổi tối — Mở Quán (`quan`), hỗ trợ đầy đủ Test Contract v1.0 (Phase 1) và v1.1 (Phase 2).
 
-Lát 4 (Nguyễn Thanh Tùng): bếp nấu (cook_started, dish_ready, ready_ticks), bưng món (dish_picked),
-phục vụ & tính boa (served), ăn xong trả tiền & uy tín (paid), dọn bàn hết ca (quan_end).
-Lát 3 (Quý Anh): khách đến theo lịch (first_customer_tick, customer_interval_s), chọn món đủ kho khả dụng,
-giữ chỗ nguyên liệu, no_dish — `_maybe_spawn_customer` (kiên nhẫn / customer_left ở `_resolve_customers_and_closing`).
+Bao gồm:
+- Lát 3 & Phase 2: khách đến theo lịch (`first_customer_tick`, `customer_interval_s`), chọn bàn trống
+  id nhỏ nhất, lọc menu theo kế hoạch ngày (`allowed_dishes` trong chế độ `day`, đủ 6 món khi chạy riêng),
+  chọn món đều theo seed từ các món đủ kho khả dụng, `no_dish`, hết kiên nhẫn (`customer_left`).
+- Lát 4 & Phase 2: 2 bếp / 4 bàn (đọc động từ `tuning`), tương tác ưu tiên `(dist, bếp trước bàn, id)`,
+  nấu đơn `reserved` cũ nhất theo `(order_tick, id bàn)`, `cook_started`, `dish_ready`, `ready_ticks`,
+  mở rộng cháy món (`burn_s`, `dish_burnt` -> `reserved` hoặc `unfulfillable`), bưng (`dish_picked`),
+  phục vụ & tính boa (`served`), ăn xong trả tiền & uy tín (`paid`), dọn bàn hết ca (`quan_end`).
 """
 
 import math
@@ -18,24 +22,28 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, allowed_dishes=None):
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
         self.rng = streams
         self.ids = ids
+        # Trong chế độ `day`, lọc menu theo tập id món của kế hoạch ngày; chạy riêng dùng toàn bộ menu.
+        self.allowed_dishes = set(allowed_dishes) if allowed_dishes is not None else None
         p = scenario.get("player", {})
         self.pos = [float(c) for c in p.get("pos", t["start_pos"])]
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
         self._tgt = None
         self._ramp_left = 0
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
-        self.stock = {k: int(v) for k, v in (inventory if inventory is not None else scenario.get("stock", {})).items() if v > 0}
+        src_stock = inventory if inventory is not None else scenario.get("stock", {})
+        self.stock = {k: int(v) for k, v in src_stock.items() if v > 0}
         self.hand = dict(scenario["hand"]) if scenario.get("hand") is not None else None
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         self.phase_tick = 0
         self.reputation = float(scenario.get("reputation", t["reputation_initial"]))
         self.random_customers = scenario.get("random_customers", True)
+        self.burn_ticks = int(round(t["burn_s"] * TICK)) if t.get("burn_s") is not None else None
         self.stoves = [
             {
                 "id": s["id"],
@@ -158,16 +166,8 @@ class QuanSim:
             elif c["state"] == "waiting":
                 c["patience_ticks_left"] = max(0, c["patience_ticks_left"] - 1)
 
-        # 2. Xét bếp theo id. Món nấu xong chuyển ready với ready_ticks = 0 (burn_s: null).
-        for s in sort_by_id(self.stoves):
-            if s["state"] == "cooking" and s["cook_ticks_left"] == 0:
-                s["state"] = "ready"
-                s["ready_ticks"] = 0
-                dish = s["dish"]
-                events.append((
-                    "dish_ready",
-                    {"stove_id": s["id"], "order_id": dish["order_id"], "dish_id": dish["dish_id"]},
-                ))
+        # 2. Xét bếp theo id: món nấu xong -> ready (ready_ticks = 0); nếu bật cháy -> xét ready_ticks > burn_ticks.
+        self._update_stoves(events)
 
         # 3. Di chuyển rồi xét tối đa một interact theo (khoảng cách, bếp trước bàn, id).
         self._move(inp)
@@ -178,9 +178,63 @@ class QuanSim:
         if self._resolve_customers_and_closing(events):
             return events
 
-        # 5. Nếu còn giờ, xét lượt khách mới theo lịch (Lát 3).
+        # 5. Nếu còn giờ, xét lượt khách mới theo lịch (lọc theo kế hoạch ngày nếu có).
         self._maybe_spawn_customer(events)
         return events
+
+    # --- Kho khả dụng -----------------------------------------------------------
+    def _available_stock(self) -> dict:
+        avail = dict(self.stock)
+        for c in self.customers:
+            for k, qty in c["reserved"].items():
+                avail[k] = avail.get(k, 0) - qty
+        return {k: v for k, v in avail.items() if v > 0}
+
+    def _can_reserve(self, recipe: dict, avail: dict) -> bool:
+        return all(avail.get(k, 0) >= qty for k, qty in recipe.items())
+
+    # --- Bếp: chín và mở rộng cháy món (Phase 2 burn) ---------------------------
+    def _update_stoves(self, events):
+        for s in sort_by_id(self.stoves):
+            if s["state"] == "cooking" and s["cook_ticks_left"] == 0:
+                s["state"] = "ready"
+                s["ready_ticks"] = 0
+                dish = s["dish"]
+                events.append((
+                    "dish_ready",
+                    {"stove_id": s["id"], "order_id": dish["order_id"], "dish_id": dish["dish_id"]},
+                ))
+            elif (
+                s["state"] == "ready"
+                and self.burn_ticks is not None
+                and s["ready_ticks"] > self.burn_ticks
+            ):
+                dish = s["dish"]
+                s["state"] = "idle"
+                s["dish"] = None
+                s["cook_ticks_left"] = 0
+                s["ready_ticks"] = 0
+                order_status = "unfulfillable"
+                cust = next((c for c in self.customers if c["id"] == dish["order_id"]), None)
+                if cust is not None and dish["dish_id"] in self.menu:
+                    recipe = self.menu[dish["dish_id"]]["recipe"]
+                    avail = self._available_stock()
+                    if self._can_reserve(recipe, avail):
+                        cust["reserved"] = {k: int(v) for k, v in recipe.items() if v > 0}
+                        cust["order_status"] = "reserved"
+                    else:
+                        cust["reserved"] = {}
+                        cust["order_status"] = "unfulfillable"
+                    order_status = cust["order_status"]
+                events.append((
+                    "dish_burnt",
+                    {
+                        "stove_id": s["id"],
+                        "order_id": dish["order_id"],
+                        "dish_id": dish["dish_id"],
+                        "order_status": order_status,
+                    },
+                ))
 
     # --- Lát 4: bếp, bưng, phục vụ, thu tiền, hết ca ---------------------------
     def _handle_interact(self, events):
@@ -401,39 +455,27 @@ class QuanSim:
         hi = float(self.t["reputation_max"])
         return max(lo, min(hi, value))
 
-    # --- Lát 3 (Quý Anh): khách theo lịch, giữ chỗ nguyên liệu ---------------------
-    def _available_stock(self) -> dict:
-        """Kho khả dụng = tồn vật lý trừ tổng phần đang giữ của mọi đơn."""
-        avail = dict(self.stock)
-        for c in self.customers:
-            for k, qty in c["reserved"].items():
-                avail[k] = avail.get(k, 0) - qty
-        return {k: v for k, v in avail.items() if v > 0}
-
-    @staticmethod
-    def _can_reserve(recipe: dict, avail: dict) -> bool:
-        return all(avail.get(k, 0) >= qty for k, qty in recipe.items())
-
-    def _customer_due(self) -> bool:
-        """Lượt khách ở first_customer_tick rồi mỗi customer_interval_s × 60 tick, tính theo phase_tick sau tăng."""
+    # --- Lịch khách & lọc menu kế hoạch ngày (Phase 1 Lát 3 + Phase 2 day_plan) --
+    def _maybe_spawn_customer(self, events):
+        if not self.random_customers:
+            return
         first_tick = int(self.t["first_customer_tick"])
         interval_ticks = int(round(self.t["customer_interval_s"] * TICK))
         if self.phase_tick < first_tick:
-            return False
-        return (self.phase_tick - first_tick) % interval_ticks == 0
-
-    def _maybe_spawn_customer(self, events):
-        # Gọi ở cuối bước, chỉ khi ca còn giờ (bước 4 đã return nếu đóng ca).
-        if not self.random_customers or not self._customer_due():
+            return
+        if (self.phase_tick - first_tick) % interval_ticks != 0:
             return
         occupied = {c["table_id"] for c in self.customers}
         empty_tables = [tb for tb in sort_by_id(self.tables) if tb["id"] not in occupied]
         if not empty_tables:
-            return  # không còn bàn: bỏ lượt, không phát event
-        table = empty_tables[0]  # bàn trống id nhỏ nhất
+            return
+        table = empty_tables[0]
         avail = self._available_stock()
-        # Duyệt id món theo mã Unicode (thứ tự cố định) rồi chọn đều theo seed trong các món đủ kho khả dụng.
-        cookable = [d for d in sorted(self.menu) if self._can_reserve(self.menu[d]["recipe"], avail)]
+        # Duyệt id món theo thứ tự mã Unicode; trong `day` lọc theo kế hoạch ngày trước.
+        menu_ids = sorted(self.menu.keys())
+        if self.allowed_dishes is not None:
+            menu_ids = [d for d in menu_ids if d in self.allowed_dishes]
+        cookable = [d for d in menu_ids if self._can_reserve(self.menu[d]["recipe"], avail)]
         if not cookable:
             events.append(("no_dish", {}))
             return
@@ -446,15 +488,17 @@ class QuanSim:
             "dish_id": dish_id,
             "order_tick": self.phase_tick,
             "state": "waiting",
-            "patience_ticks_left": int(round(self.t["patience_s"] * TICK)),  # đầy, giảm từ bước sau
+            "patience_ticks_left": int(round(self.t["patience_s"] * TICK)),
             "eat_ticks_left": 0,
             "order_status": "reserved",
-            "reserved": reserved,  # giữ đúng công thức ngay khi gọi
+            "reserved": reserved,
             "base_price": None,
             "tip": None,
         })
-        self.customers = sort_by_id(self.customers)
-        events.append(("customer_arrived", {"order_id": order_id, "table_id": table["id"], "dish_id": dish_id}))
+        events.append((
+            "customer_arrived",
+            {"order_id": order_id, "table_id": table["id"], "dish_id": dish_id},
+        ))
 
     def _move(self, inp):
         speed = self.t["walk_speed"]
