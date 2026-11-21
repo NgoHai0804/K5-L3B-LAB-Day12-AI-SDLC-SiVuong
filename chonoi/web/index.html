@@ -40,7 +40,7 @@ function textW(s, size = 18, weight = "600") { ctx.font = weight + " " + size + 
 function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
 function panel(x, y, w, h, o = {}) {
   ctx.save();
-  if (o.shadow !== false) { ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4; }
+  if (o.shadow !== false) { rr(x + 2, y + 4, w, h, o.r ?? 12); ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.fill(); }
   rr(x, y, w, h, o.r ?? 12);
   ctx.fillStyle = o.fill || "rgba(10,34,58,.82)"; ctx.fill(); ctx.restore();
   rr(x, y, w, h, o.r ?? 12);
@@ -181,16 +181,25 @@ addEventListener("blur", () => { down.clear(); pushInput(); });
 
 // ============================================================ POLL
 let stageKey = "", seenTick = -1;
+let snapAt = 0;
+// Làm mượt: snapshot tới theo nhịp mạng (không đều) -> nội suy vị trí theo vận tốc tới tối đa 1 tick sim + độ trễ.
+function livePos(pl, axes) {
+  if (!pl || !pl.vel || snap.paused || snap.finished || !["gather", "quan"].includes(stage())) return pl ? pl.pos : [0, 0];
+  const dt = Math.min(.05, (performance.now() - snapAt) / 1000);
+  const b = (snap.meta && snap.meta.bounds) || {};
+  return pl.pos.map((v, i) => { const r = b[axes[i]]; const x = v + pl.vel[i] * dt; return r ? Math.max(r[0], Math.min(r[1], x)) : x; });
+}
 async function poll() {
+  const t0 = performance.now();
   try {
     const r = await fetch("/state", { cache: "no-store" });
     const s = await r.json();
-    snap = s; offline = false;
+    snap = s; offline = false; snapAt = performance.now();
     const key = stage() + ":" + s.phase + ":" + (s.day || 0);
     if (key !== stageKey) { stageKey = key; fx.length = 0; parts.length = 0; camX = null; }
     handleEvents(s.events || []);
   } catch (e) { offline = true; }
-  if (!quitted) setTimeout(poll, 16);
+  if (!quitted) setTimeout(poll, Math.max(0, 16 - (performance.now() - t0)));
 }
 poll();
 
@@ -299,9 +308,16 @@ function floaters() {
 }
 
 // ============================================================ ICON NGUYÊN LIỆU / MÓN (chi tiết)
+const GRAD_CACHE = new Map();
 function fishBody(len, h, cTop, cBelly, o = {}) {
-  const g = ctx.createLinearGradient(0, -h, 0, h);
-  g.addColorStop(0, cTop); g.addColorStop(.55, o.mid || cTop); g.addColorStop(1, cBelly);
+  const key = cTop + cBelly + (o.mid || "") + Math.round(h * 4);
+  let g = GRAD_CACHE.get(key);
+  if (!g) {
+    g = ctx.createLinearGradient(0, -h, 0, h);
+    g.addColorStop(0, cTop); g.addColorStop(.55, o.mid || cTop); g.addColorStop(1, cBelly);
+    if (GRAD_CACHE.size > 400) GRAD_CACHE.clear();
+    GRAD_CACHE.set(key, g);
+  }
   ctx.fillStyle = g;
   ctx.beginPath(); ctx.moveTo(len, 0);
   ctx.bezierCurveTo(len * .8, -h * 1.05, -len * .4, -h * 1.1, -len * .85, -h * .2);
@@ -495,11 +511,11 @@ const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 function drawGatherWorld(w, h) {
   const meta = snap.meta || {};
   const b = meta.bounds || { x: [0, 100], d: [0, 30] };
-  const X = b.x[1], D = b.d[1], SKY = 9;
+  const X = b.x[1], D = b.d[1], SKY = 11.5;
   const s = Math.max(10, Math.min((h - 10) / (D + SKY + 1.5), w / 34));
   const p = snap.player || { pos: [2, 0] };
   const viewW = w / s;
-  const targetCam = Math.max(-viewW * .3, Math.min(X + viewW * .3 - viewW, p.pos[0] - viewW * .42));
+  const targetCam = Math.max(-viewW * .3, Math.min(X + viewW * .3 - viewW, livePos(p, ["x", "d"])[0] - viewW * .42));
   camX = camX === null ? targetCam : camX + (targetCam - camX) * .12;
   const sh = shake ? (Math.random() - .5) * shake : 0;
   const ox = -camX * s + sh, oy = SKY * s;
@@ -516,9 +532,16 @@ function drawGatherWorld(w, h) {
   const sg = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, s * 6);
   sg.addColorStop(0, "rgba(255,250,225,1)"); sg.addColorStop(.18, "rgba(255,225,170,.75)"); sg.addColorStop(1, "rgba(255,210,170,0)");
   ctx.fillStyle = sg; ctx.fillRect(sunX - s * 6, sunY - s * 6, s * 12, s * 12);
-  for (let i = 0; i < 6; i++) {
-    const cx = ((i * 260 + t * 8 - camX * s * .06) % (w + 400) + w + 400) % (w + 400) - 200, cy = oy * (.12 + hash(i) * .38);
-    for (let j = 0; j < 5; j++) { ctx.fillStyle = `rgba(255,255,255,${.55 + hash(i + j) * .25})`; ellipse(cx + j * 26, cy + Math.sin(j * 2) * 5, 34 - Math.abs(j - 2) * 5, 13); ctx.fill(); }
+  for (let i = 0; i < 9; i++) {
+    const sc = .7 + hash(i + 20) * .9, span = w + 500;
+    const cx = ((i * 190 + t * (5 + hash(i) * 6) - camX * s * (.03 + hash(i + 1) * .05)) % span + span) % span - 250;
+    const cy = oy * (.1 + hash(i) * .45);
+    ctx.fillStyle = "rgba(120,150,190,.22)"; ellipse(cx + 60 * sc, cy + 16 * sc, 80 * sc, 12 * sc); ctx.fill();
+    for (let j = 0; j < 6; j++) {
+      const r = (24 + hash(i * 7 + j) * 18) * sc;
+      ctx.fillStyle = `rgba(255,255,255,${.75 + hash(i + j) * .2})`; circle(cx + j * 22 * sc, cy - Math.sin(j / 5 * Math.PI) * 14 * sc, r); ctx.fill();
+    }
+    ctx.fillStyle = "rgba(255,255,255,.9)"; ellipse(cx + 55 * sc, cy + 6 * sc, 72 * sc, 16 * sc); ctx.fill();
   }
   for (let i = 0; i < 4; i++) {
     const bx = ((t * 34 + i * 110) % (w + 200)) - 100, by = oy * .28 + i * 14 + Math.sin(t * 2 + i) * 6, fl = Math.sin(t * 9 + i) * 5;
@@ -589,7 +612,8 @@ function drawGatherWorld(w, h) {
     ctx.strokeStyle = hash(x) > .5 ? "rgba(70,170,110,.9)" : "rgba(40,130,90,.9)"; ctx.lineWidth = s * .2; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(sx(x), sy(D));
     ctx.quadraticCurveTo(sx(x + Math.sin(t + x) * .7), sy(D - hgt / 2), sx(x + Math.sin(t * 1.3 + x) * 1.0), sy(D - hgt)); ctx.stroke();
   }
-  ctx.fillStyle = "rgba(2,14,30,.55)"; ctx.fillRect(sx(-10), oy, s * 10, D * s); ctx.fillRect(sx(X), oy, s * 10, D * s);
+  if (sx(0) > 0) { const g0 = ctx.createLinearGradient(sx(0) - s * 6, 0, sx(0), 0); g0.addColorStop(0, "rgba(2,14,30,.6)"); g0.addColorStop(1, "rgba(2,14,30,0)"); ctx.fillStyle = g0; ctx.fillRect(0, oy, sx(0), D * s + s); }
+  if (sx(X) < w) { const g1 = ctx.createLinearGradient(sx(X), 0, sx(X) + s * 6, 0); g1.addColorStop(0, "rgba(2,14,30,0)"); g1.addColorStop(1, "rgba(2,14,30,.6)"); ctx.fillStyle = g1; ctx.fillRect(sx(X), oy, w - sx(X), D * s + s); }
 
   // bến, nút hái, cá, thủy quái
   const dp = meta.dock_pos || [2, 0], dr = meta.dock_radius || 3;
@@ -615,7 +639,8 @@ function drawGatherWorld(w, h) {
   const hd = (p.heading_deg || 0) * Math.PI / 180;
   const face = Math.cos(hd) < -0.01 ? -1 : 1;
   const ang = at ? 0 : Math.asin(Math.max(-1, Math.min(1, Math.sin(hd)))) * .6 * face;
-  const px = sx(p.pos[0]), py = sy(p.pos[1]) - (at ? s * .1 : 0);
+  const lp = livePos(p, ["x", "d"]);
+  const px = sx(lp[0]), py = sy(lp[1]) - (at ? s * .1 : 0);
   const sprinting = !!p.sprinting;
   if (!at && Math.random() < (sprinting ? .45 : .15)) parts.push(bubble(p.pos[0] - face * .9, p.pos[1] - .2, false));
   if (sprinting && moving) {
@@ -815,23 +840,20 @@ function clockPanel(cx, label, ticks, dur, icon) {
 function countKinds(items) { const o = {}; (items || []).forEach((it) => (o[it.kind] = (o[it.kind] || 0) + 1)); return o; }
 function gatherHUD(w, h, info) {
   const { p, meta, D, at } = info;
-  // máu + oxy + thể lực
-  const PW = 330;
-  panel(14, 12, PW, p.stamina_max ? 150 : 118);
-  for (let i = 0; i < (p.hp_max || 3); i++) heart(42 + i * 36, 42, 13, i < p.hp);
-  text("Máu", PW - 4, 48, { size: 18, align: "right", color: "#ffc2c9", weight: "800" });
+  // máu + oxy + thể lực: thẻ nhỏ góc trái
+  const PW = 232, PH = p.stamina_max ? 92 : 68;
+  panel(10, 10, PW, PH, { r: 10, fill: "rgba(10,34,58,.72)" });
+  for (let i = 0; i < (p.hp_max || 3); i++) heart(30 + i * 24, 30, 9, i < p.hp);
   const of = p.oxygen_max_ticks ? p.oxygen_ticks / p.oxygen_max_ticks : 1;
   const low = of < .25, blink = low && Math.floor(now() * 4) % 2 === 0;
-  const ocol = low ? (blink ? "#ff3b3b" : "#ff8a80") : of < .5 ? "#ffd54f" : "#4fd8ff";
-  text("Oxy", 30, 86, { size: 18, color: "#cfefff", weight: "800" });
-  bar(78, 70, PW - 150, 20, of, ocol);
-  text(Math.ceil((p.oxygen_ticks || 0) / 60) + " s", PW - 4, 87, { size: 20, align: "right", color: ocol, weight: "800" });
-  text(at ? "đang thở" : p.sprinting ? "sprint: oxy ×1.5" : "dưới nước", 30, 112, { size: 18, color: at ? "#9be15d" : p.sprinting ? "#ffd36b" : "#9fd6ec" });
+  const ocol = low ? (blink ? "#ff3b3b" : "#ff8a80") : of < .5 ? "#ffd54f" : at ? "#7fe6a0" : "#4fd8ff";
+  text(Math.ceil((p.oxygen_ticks || 0) / 60) + "s", PW + 2, 36, { size: 18, align: "right", color: ocol, weight: "800" });
+  text("Oxy", 22, 62, { size: 16, color: "#cfefff", weight: "800" });
+  bar(64, 51, PW - 64, 13, of, ocol);
   if (p.stamina_max) {
     const sf = p.stamina / p.stamina_max;
-    text("Sức", 30, 146, { size: 18, color: "#ffe9b0", weight: "800" });
-    bar(78, 130, PW - 150, 18, sf, p.exhausted ? "#a08a6a" : p.sprinting ? "#ffb02e" : "#ffd36b");
-    text(p.exhausted ? "mệt!" : "Shift", PW - 4, 146, { size: 18, align: "right", color: p.exhausted ? "#ff8a80" : "#ffe9b0", weight: "700" });
+    text(p.exhausted ? "Mệt" : "Sức", 22, 86, { size: 16, color: p.exhausted ? "#ff8a80" : "#ffe9b0", weight: "800" });
+    bar(64, 76, PW - 64, 10, sf, p.exhausted ? "#a08a6a" : p.sprinting ? "#ffb02e" : "#ffd36b");
   }
   clockPanel(w / 2, "Ngày " + (snap.day || 1) + " · Buổi sáng", snap.time_left_ticks, meta.duration_s || 180, "sun");
   // danh sách cần lấy
@@ -967,7 +989,8 @@ function drawQuanWorld(w, h) {
   });
   list.push({ z: p.pos[1] - .01, f: () => {
     const moving = p.vel && Math.hypot(p.vel[0], p.vel[1]) > .2, face = p.vel && p.vel[0] < -.1 ? -1 : 1;
-    const px = sx(p.pos[0]), py = sy(p.pos[1]);
+    const lp = livePos(p, ["x", "z"]);
+    const px = sx(lp[0]), py = sy(lp[1]);
     ctx.strokeStyle = "rgba(255,230,150,.35)"; ctx.lineWidth = 2; ctx.setLineDash([6, 6]); ellipse(px, py, ir * s, ir * zs); ctx.stroke(); ctx.setLineDash([]);
     drawWalker(px, py, s * .95, { face, moving, carry: !!snap.hand });
     if (snap.hand) drawDish(snap.hand.dish_id, px + face * s * .2, py - s * 2.35, s * .48);
@@ -1355,14 +1378,30 @@ function overlay(w, h) {
 
 // ============================================================ VÒNG VẼ
 function fit() {
-  const dpr = window.devicePixelRatio || 1, w = innerWidth, h = innerHeight;
+  const w = innerWidth, h = innerHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, Math.sqrt(2.4e6 / Math.max(1, w * h)), 2);
   if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
   return [w, h];
 }
+const PERF = { on: location.search.includes("bench"), ft: 0, gap: 0, last: 0, n: 0 };
+addEventListener("keydown", (e) => { if (e.key === "F3") { PERF.on = !PERF.on; e.preventDefault(); } });
 function frame() {
   requestAnimationFrame(frame);
+  const t0 = performance.now();
+  drawFrame();
+  const dt = performance.now() - t0;
+  PERF.ft = PERF.ft ? PERF.ft * .95 + dt * .05 : dt;
+  if (PERF.last) PERF.gap = PERF.gap ? PERF.gap * .95 + (t0 - PERF.last) * .05 : t0 - PERF.last;
+  PERF.last = t0; PERF.n++;
+  if (PERF.on) {
+    const msg = "vẽ " + PERF.ft.toFixed(1) + " ms · " + (1000 / Math.max(1, PERF.gap)).toFixed(0) + " FPS";
+    text(msg, 10, innerHeight - 34, { size: 16, color: "#9f9", stroke: "#000", strokeW: 3 });
+    if (PERF.n % 10 === 0) document.title = msg + " · khung " + PERF.n;
+  }
+}
+function drawFrame() {
   const [w, h] = fit();
   ctx.fillStyle = "#06203a"; ctx.fillRect(0, 0, w, h);
   if (quitted) { text("Đã thoát game. Có thể đóng tab này.", w / 2, h / 2, { align: "center", size: 24, weight: "800" }); return; }
