@@ -4,8 +4,8 @@
 
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
-- Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
-- Chơi liền mạch sáng → tối: `python3 -m chonoi.play` (WASD, E, Space, Enter, R, M)
+- Headless (contract v1.2): `python3 -m chonoi.headless --mode gather|quan|day [--days 1-5] --seed 1 --ticks 600 --out out.jsonl`
+- Chơi trọn 5 Ngày: `python3 -m chonoi.play` (WASD, Shift sprint, E, Space, Esc/P, Enter, 1–7, R, M)
 - Chơi thử từng buổi: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 - PRD/ticket theo phase: `docs/prd/` · hợp đồng kho + sự kiện: `docs/contracts/README.md`
 

@@ -41,17 +41,14 @@ Hợp đồng file kho và danh sách sự kiện: [`docs/contracts/README.md`](
 
 ## Sáng tạo của nhóm
 
-Mọi phần dưới đây chỉ nằm ở cửa sổ chơi (`chonoi/play.py`, `chonoi/web/index.html`). Headless **không** dùng chúng, nên tick, sự kiện, tiền, uy tín và snapshot vẫn đúng contract.
+Lõi chạy theo **Test Contract v1.2** (Phase 2 số chuẩn + vòng Ngày, Phase 3 kho cá thể và độ tươi). Mọi phần dưới đây chỉ nằm ở cửa sổ chơi (`chonoi/play.py`, `chonoi/web/index.html`, `extras` của `GatherSim`). Headless **không** bật chúng, nên tick, sự kiện, tiền, uy tín và snapshot vẫn đúng contract.
 
-- **Chiến dịch 10 ngày** (`python3 -m chonoi.play`): màn tiêu đề → mỗi ngày gồm buổi sáng lặn, buổi tối mở quán và ghé chợ sắm đồ → kết thúc sau ngày 10. Mục tiêu là đủ 2000k tiền thuốc cho Má Tư, có 3 kết thúc tùy tổng thu và uy tín. Mỗi ngày có tên và thoại riêng.
-  - Kho chuyển sang quán qua đúng file kho (`saves/kho.json`, Contract G). Uy tín mang sang ngày sau qua `scenario.quan.reputation`.
-  - Mỗi ngày bố trí cá và bông khác nhau (tất định theo seed, vẫn qua kiểm scenario). Khách tới dày hơn và mau sốt ruột hơn.
-  - Chợ có 6 nâng cấp, mỗi món 3 cấp: bình oxy, giỏ lưới, chân vịt, vợt, bếp lò, ghế đẩu. Nâng cấp chỉ sửa một bản sao tuning và vẫn phải qua `validate_tuning`.
-  - Tiến trình được lưu trong `saves/campaign.json`; mở lại sẽ chơi tiếp được.
-- **Đồ họa pixel-art vẽ bằng code, không dùng asset ngoài:** thế giới được vẽ ở 1/3 độ phân giải rồi phóng to không làm mịn, HUD giữ sắc nét. Vùng sâu tối dần và có đèn đội đầu soi đường. Có ghe chợ nổi treo cây bẹo, khạp sành và xuồng chìm dưới đáy. Bình minh chuyển dần sang trưa, nước phù sa có tia nắng, bờ dừa nước và nhà sàn trôi parallax, lục bình trôi, đàn cá lượn. Út Sen mặc áo bà ba, quấn khăn rằn, đeo kính lặn tự chế. Nhà bè buổi tối có đèn dây vàng, đèn lồng, bếp than có khói.
-- **HUD đầy đủ:** bình oxy, tim Máu, thước độ sâu, giỏ có icon, gợi ý phím theo ngữ cảnh, cảnh báo đỏ khi sắp hết oxy. Bên quán có phiếu gọi món kèm thanh kiên nhẫn, kho khả dụng / đang giữ, trạng thái bếp, món trên tay, thực đơn, sao uy tín.
-- Thoại giọng Nam Bộ của Má Tư, chữ bay, tiền rơi, âm thanh tự tạo bằng WebAudio.
-- **Bằng chứng lõi vẫn đúng:** `tests/test_smoke_p1.py` và `tests/test_rules_p1.py` chạy hộp đen qua headless. `tests/test_play.py` chạy đủ 10 ngày, kiểm chợ, lưu/tải, tuning và bố trí từng ngày đều hợp lệ, kho đi qua đúng file kho.
+- **Mùa nước nổi 5 Ngày** (`python3 -m chonoi.play`): chạy đúng `DaySim` của `--mode day`. Menu (Chơi / Thoát) → DayIntro (Má Tư đọc món và nguyên liệu, tự chuyển sau 4 s) → sáng lặn → EveningIntro (nhập kho, món nấu được) → tối mở quán → DayResult → Shop → Ngày kế → Tổng kết (tổng tiền, điểm, uy tín, món bán chạy). Esc/P tạm dừng bằng `pause` của sim (dừng mọi timer, kể cả Shop). Mỗi Ngày có tên và thoại riêng, mục tiêu 1500k tiền thuốc cho Má Tư. Tiến trình lưu ở ranh giới Ngày (`saves/campaign.json`).
+- **Sprint** (giữ Shift khi lặn): bơi ×1.5, oxy dưới nước tốn ×1.5, tiêu thanh **Sức** (đủ khoảng 3 s); hết Sức thì phải hồi tới 30% mới sprint lại. Chỉ bật qua `LiveGame.EXTRAS`; `tests/test_play.py` kiểm headless không có sprint.
+- **Đồ nghề ở Shop** (ngoài oxygen/hp lõi): giỏ lưới, chân vịt, vợt, bếp lò, ghế đẩu. Chỉ sửa một bản sao tuning từ Ngày kế và vẫn qua `validate_tuning`.
+- **Đồ họa vẽ bằng code ở độ phân giải gốc** (không dùng asset ngoài, không còn lớp pixel): sông nước xanh trong có tia nắng, gợn sáng, hạt lơ lửng, đáy cát/đá/san hô/rong; cá linh, cá lóc, cá kèo có vây, vảy, mắt; Cá Sấu Năm Chèo có vảy lưng, hàm há khi đuổi; Út Sen có bình oxy, kính lặn, ống thở, chân vịt. Buổi tối là **quán dạng quầy bar**: tường gỗ, cửa sổ nhìn ra sông đêm, kệ nguyên liệu (thanh độ tươi), mái lá dừa, đèn lồng, 2 bếp đất, 4 quầy có ghế đẩu, khách ngồi quầy với bong bóng gọi món, phiếu order treo trên thanh ray.
+- **HUD**: Máu, Oxy (đỏ nhấp nháy dưới 25%), Sức, đồng hồ (đỏ khi còn ≤ 30 s), độ sâu theo vùng, giỏ theo ô có thanh độ tươi và nhãn "ươn", danh sách Má Tư dặn (đã lấy/cần), "Thủy quái!" + viền tím, "Hết hơi!". Quán: phiếu order có kiên nhẫn, kho theo loại (khả dụng / giữ / ươn / độ tươi tốt nhất), bếp, món trên tay và giá đã chốt, thực đơn hôm nay. Chữ ≥ 16–18 px.
+- **Bằng chứng lõi vẫn đúng:** `tests/test_rules_p1.py`, `tests/test_smoke_p1.py` (regression, đã chuyển sang kho cá thể), `tests/test_rules_p2p3.py` (độ tươi, giữ lại khi ươn, giá theo tươi, cá bơi/sinh, Cá Sấu, Shop, pause, vòng Ngày, tất định) chạy hộp đen qua headless; `tests/test_play.py` chạy trọn 5 Ngày, Shop, lưu/tải, pause, sprint.
 
 ---
 

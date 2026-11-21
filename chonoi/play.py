@@ -92,7 +92,7 @@ class CampaignGame(LiveGame):
     # --- trạng thái giữa các Ngày -------------------------------------------------------------
     def _fresh_state(self):
         self.start_day = 1
-        self.start = {"money": 0, "earned": 0, "reputation": self.base_tuning["quan"]["reputation_initial"],
+        self.day_start_state = {"money": 0, "earned": 0, "reputation": self.base_tuning["quan"]["reputation_initial"],
                       "upgrades": {}}
         self.gear = {k: 0 for k in GEAR}
         self.history = []
@@ -124,9 +124,9 @@ class CampaignGame(LiveGame):
             sys.stderr.write(f"không lưu được tiến trình: {e}\n")
 
     def _reset(self):
-        """Dựng phiên `day` bắt đầu ở `self.start_day` với trạng thái `self.start`."""
-        scen = {"day": {"money": self.start["money"], "earned": self.start["earned"],
-                        "reputation": self.start["reputation"], "upgrades": dict(self.start["upgrades"])}}
+        """Dựng phiên `day` bắt đầu ở `self.start_day` với trạng thái `self.day_start_state`."""
+        scen = {"day": {"money": self.day_start_state["money"], "earned": self.day_start_state["earned"],
+                        "reputation": self.day_start_state["reputation"], "upgrades": dict(self.day_start_state["upgrades"])}}
         gear = self.gear
         self.session = Session("day", self.base_tuning, scen, self.base_seed, days=MAX_DAYS, extras=self.EXTRAS,
                                day_tuning=lambda day, active: day_tuning(self.base_tuning, day, gear),
@@ -149,7 +149,7 @@ class CampaignGame(LiveGame):
     def _snapshot_start(self):
         sim = self.session.sim
         self.start_day = sim.day
-        self.start = {"money": sim.money, "earned": sim.earned, "reputation": sim.reputation,
+        self.day_start_state = {"money": sim.money, "earned": sim.earned, "reputation": sim.reputation,
                       "upgrades": dict(sim.upgrades)}
 
     # --- vòng tick -------------------------------------------------------------------------------
@@ -229,8 +229,8 @@ class CampaignGame(LiveGame):
     def _resume(self, d):
         self._fresh_state()
         self.start_day = int(d["day"])
-        self.start = {"money": int(d.get("money", 0)), "earned": int(d.get("earned", 0)),
-                      "reputation": float(d.get("reputation", self.start["reputation"])),
+        self.day_start_state = {"money": int(d.get("money", 0)), "earned": int(d.get("earned", 0)),
+                      "reputation": float(d.get("reputation", self.day_start_state["reputation"])),
                       "upgrades": {k: int(v) for k, v in d.get("upgrades", {}).items() if k in CORE_NAMES}}
         self.gear.update({k: int(v) for k, v in d.get("gear", {}).items() if k in GEAR})
         self.history = list(d.get("history", []))[: self.start_day - 1]
