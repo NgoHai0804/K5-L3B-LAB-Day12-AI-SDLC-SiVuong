@@ -44,7 +44,7 @@ python3 -m chonoi.play --export-leaderboard bang-xep-hang.json       # xuất b�
 ## Luật chính và cách tính điểm
 
 - **Sáng:** oxy 30 s, chỉ giảm khi ở dưới nước (d > 0.5 m) và hồi rất nhanh khi lên mặt nước. Hết oxy thì cứ đủ 60 tick lại mất 1 Máu (có 3 Máu). Hết Máu thì **ngất**: mất cả giỏ, kho rỗng. Giỏ chứa 12 ô. Bông điên điển, bông súng, kèo nèo hái ở mặt nước, mọc lại sau 20 s. Một đàn cá linh cho 3 con, cá lóc 1 con, cá kèo 2 con; hồi chiêu bắt 0.5 s. Cập bến hoặc hết 3 phút thì giỏ được ghi ra file kho (schema **kho cá thể** `{"items":[{id,kind,fresh}]}`).
-- **Tối:** khách đầu tiên đến ở tick 120, sau đó mỗi 15 s một khách nếu bàn T1 còn trống. Khách gọi ngẫu nhiên (theo seed) một món nấu được từ kho, và **giữ chỗ** nguyên liệu ngay lúc gọi. Quy trình: nấu ở B1 → bưng → phục vụ trước khi khách hết kiên nhẫn (60 s). Khách ăn 10 s rồi trả tiền. Phục vụ khi khách còn ≥ 50% kiên nhẫn thì được boa `floor(giá × 0.2)` và +0.2 uy tín. Khách bỏ về làm uy tín −0.5. Tất cả số lấy từ `game.contract.json`.
+- **Tối:** khách đầu tiên đến ở tick 120, sau đó mỗi 15 s một khách nếu còn bàn trống. Khách gọi ngẫu nhiên (theo seed) một món nấu được từ kho, và **giữ chỗ** nguyên liệu ngay lúc gọi. Quy trình: nấu ở bếp → bưng → phục vụ trước khi khách hết kiên nhẫn (60 s). Khách ăn 10 s rồi trả tiền. Phục vụ khi khách còn ≥ 50% kiên nhẫn thì được boa `floor(giá × 0.2)` và +0.2 uy tín. Khách bỏ về làm uy tín −0.5. Tất cả số lấy từ `game.contract.json`.
 - **Điểm** = `earned + 100 × floor(uy tín)` (tiền tính bằng nghìn đồng).
 
 | Món | Công thức | Nấu | Giá |
