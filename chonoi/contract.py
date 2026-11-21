@@ -23,6 +23,15 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
+    if c.get("contract_version") != "1.1":
+        raise BadInput("contract_version phải là '1.1'")
+    if c.get("modes") != ["gather", "quan", "day"]:
+        raise BadInput("modes phải là ['gather', 'quan', 'day']")
+    inputs = c.get("input_contract")
+    if not isinstance(inputs, dict) or inputs.get("buttons") != [
+        "interact", "catch", "pause", "shop_done", "attack", "photo"
+    ] or inputs.get("commands") != {"buy": ["oxygen", "hp"]}:
+        raise BadInput("input_contract không đúng Contract v1.1")
     validate_tuning(c.get("tuning"))
     return c
 

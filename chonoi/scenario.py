@@ -18,6 +18,8 @@ FISH_KINDS = ("ca_linh", "ca_loc")
 QUAN_PLAYER_KEYS = {"pos", "vel"}
 QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "random_customers",
              "reputation", "time_left_ticks"}
+DAY_KEYS = {"day", "phase", "days_completed", "money", "earned", "reputation", "stock",
+            "upgrades", "active_upgrades", "random_fish", "gather", "quan", "shop"}
 
 
 def _check_ids(name, arr):
@@ -40,13 +42,16 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
             data = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
-    if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:
-        raise BadInput("scenario chỉ được có khối 'gather' hoặc 'quan'")
+    if not isinstance(data, dict) or not set(data) <= {"gather", "quan", "day"}:
+        raise BadInput("scenario chỉ được có khối 'gather', 'quan' hoặc 'day'")
     if set(data) - {mode}:
         raise BadInput(f"khối sai mode: chạy --mode {mode} chỉ nhận khối '{mode}'")
     block = data.get(mode, {})
     if not isinstance(block, dict):
         raise BadInput(f"khối {mode} phải là object")
+    if mode == "day":
+        _validate_day(block)
+        return block
     allowed = GATHER_KEYS if mode == "gather" else QUAN_KEYS
     extra = set(block) - allowed
     if extra:
@@ -61,6 +66,38 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
     else:
         _validate_quan(block, tuning)
     return block
+
+
+def _validate_day(block):
+    extra = set(block) - DAY_KEYS
+    if extra:
+        raise BadInput(f"trường lạ/chưa hỗ trợ trong day: {sorted(extra)}")
+    if "day" in block:
+        day = block["day"]
+        if isinstance(day, bool) or not isinstance(day, int) or not 1 <= day <= 5:
+            raise BadInput("day.day phải là số nguyên trong [1, 5]")
+    if "days_completed" in block:
+        value = block["days_completed"]
+        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 5:
+            raise BadInput("day.days_completed phải là số nguyên trong [0, 5]")
+    if "phase" in block and block["phase"] not in {
+        "day_intro", "gather", "evening_intro", "quan", "day_result", "shop", "summary"
+    }:
+        raise BadInput("day.phase không hợp lệ")
+    if "random_fish" in block and not isinstance(block["random_fish"], bool):
+        raise BadInput("day.random_fish phải là boolean")
+    for name in ("gather", "quan", "shop"):
+        if name in block and not isinstance(block[name], dict):
+            raise BadInput(f"day.{name} phải là object")
+    for name in ("upgrades", "active_upgrades"):
+        if name not in block:
+            continue
+        upgrades = block[name]
+        if not isinstance(upgrades, dict) or set(upgrades) - {"oxygen", "hp"}:
+            raise BadInput(f"day.{name} chỉ có oxygen và hp")
+        for key, level in upgrades.items():
+            if isinstance(level, bool) or not isinstance(level, int) or not 0 <= level <= 2:
+                raise BadInput(f"day.{name}.{key} phải là cấp trong [0, 2]")
 
 
 def _num(v):
