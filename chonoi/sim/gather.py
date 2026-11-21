@@ -13,10 +13,11 @@ Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gath
       - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
       - sự kiện dive / surface / oxygen_empty / choke / faint
       - giỏ: thứ tự nhặt (LIFO), sức chứa hold_capacity; seam `_try_hold` phát hold_full cho lát 2
-  TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho  (Đức, AC-P1-05..08)
+  XONG (lát 2 - Đức): hái + bắt cá + cập bến + kho  (AC-P1-05..08)
       - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
       - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
       - cập bến xét TRƯỚC hái (đã có); ghi kho đúng một lần do runner lo
+      - cả hái và bắt cá đi qua seam `_try_hold` của lát 1, không tự thêm giỏ
 Các tính năng của phase sau chưa nằm trong khung này.
 """
 
@@ -118,11 +119,22 @@ class GatherSim:
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
-        # 4. bắt cá
-        if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
+            if self._at_surface():
+                n = self._nearest_ready_node()
+                if n is not None:
+                    amounts = [n["kind"]] * int(self.t["node_yield"])
+                    if self._try_hold("gather", n["id"], amounts, events):
+                        events.append(("gather", {"node_id": n["id"], "kind": n["kind"]}))
+                        n["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
+        # 4. bắt cá: chỉ khi dưới nước và hết hồi chiêu
+        if inp.pressed("catch") and self.catch_cd_ticks == 0 and not self._at_surface():
+            f = self._nearest_fish()
+            if f is not None:
+                amounts = [f["kind"]] * int(self.t["fish_yield"][f["kind"]])
+                if self._try_hold("catch", f["id"], amounts, events):
+                    events.append(("fish_caught", {"fish_id": f["id"], "kind": f["kind"]}))
+                    self.fish = [g for g in self.fish if g["id"] != f["id"]]
+                    self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
@@ -131,6 +143,23 @@ class GatherSim:
     # --- tiện ích ---------------------------------------------------------------
     def _at_surface(self) -> bool:
         return self.pos[1] <= self.t["surface_depth"]
+
+    def _nearest_ready_node(self):
+        """Nút `ready` gần nhất trong interact_radius; bằng khoảng cách thì id nhỏ hơn thắng."""
+        r = self.t["interact_radius"]
+        cands = [n for n in sort_by_id(self.nodes)
+                 if n["regrow_ticks"] == 0 and math.dist(self.pos, n["pos"]) <= r]
+        if not cands:
+            return None
+        return min(cands, key=lambda n: math.dist(self.pos, n["pos"]))
+
+    def _nearest_fish(self):
+        """Đàn cá gần nhất trong catch_radius; bằng khoảng cách thì id nhỏ hơn thắng."""
+        r = self.t["catch_radius"]
+        cands = [f for f in sort_by_id(self.fish) if math.dist(self.pos, f["pos"]) <= r]
+        if not cands:
+            return None
+        return min(cands, key=lambda f: math.dist(self.pos, f["pos"]))
 
     def _in_dock(self) -> bool:
         return math.dist(self.pos, self.t["dock_pos"]) <= self.t["dock_radius"]
@@ -168,11 +197,12 @@ class GatherSim:
         """Thêm nguyên liệu vào giỏ nếu đủ chỗ (LIFO). Đầy -> phát `hold_full`, trả False.
 
         Seam cho lát 2: hái dùng action="gather" (node_id), bắt cá dùng action="catch" (fish_id).
+        `hold_full` phải có khoá `kind` theo hợp đồng đóng băng §4; các khoá còn lại là chẩn đoán thêm.
         """
         free = self._hold_free()
         if len(amounts) > free:
             key = "node_id" if action == "gather" else "fish_id"
-            events.append(("hold_full", {"action": action, key: item_id,
+            events.append(("hold_full", {"kind": amounts[0], "action": action, key: item_id,
                                          "required": len(amounts), "free": free}))
             return False
         self.hold.extend(amounts)
