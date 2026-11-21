@@ -24,7 +24,7 @@ flowchart LR
 
 | Thành viên | GitHub handle | Team | Lát (Phase 1) | Module chính | Vai quy trình |
 |---|---|---|---|---|---|
-| Ngô Ngọc Hải | | Sáng | **Lát 1** | `sim/gather` | **Integrator** (giữ `docs/contracts/`, gắn tag) · Team lead Sáng |
+| Ngô Ngọc Hải | NgoHai0804 | Sáng | **Lát 1** | `sim/gather` | **Integrator** (giữ `docs/contracts/`, gắn tag) · Team lead Sáng |
 | Trần Minh Đức | | Sáng | **Lát 2** | `sim/gather` | **PO** (hỏi Anh Năm/giảng viên, giữ `docs/clarify.md`) |
 | Trần Thị Nhài | | Sáng | HUD/QA + hỗ trợ | `client/ui` (gather) | **Scrum/Release** (mốc bàn giao, standup, release) |
 | Bùi Đình Quý Anh (2A202603969) | | Tối | **Lát 3** | `sim/quan` | **QA lead** (bộ test + ma trận truy vết) · Team lead Tối |
