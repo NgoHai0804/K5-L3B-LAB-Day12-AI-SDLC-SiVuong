@@ -31,7 +31,8 @@ MENU = load_contract()["tuning"]["menu"]
 FIRST = int(Q["first_customer_tick"])
 INTERVAL = int(round(Q["customer_interval_s"] * 60))
 PATIENCE = int(round(Q["patience_s"] * 60))
-FULL_STOCK = {"ca_loc": 5, "ca_linh": 9, "bong_dien_dien": 3, "bong_sung": 6}
+TABLES = [tb["id"] for tb in Q["tables"]]  # v1.1: T1–T4 (P1: chỉ T1)
+FULL_STOCK = {"ca_loc": 5, "ca_linh": 9, "bong_dien_dien": 3, "bong_sung": 6, "ca_keo": 4, "keo_neo": 2}
 
 
 def run_quan(w, scenario, ticks, seed=1, every=1, inputs=None, name="o.jsonl"):
@@ -79,9 +80,11 @@ class TestQuanLat3Schedule(unittest.TestCase):
             self.assertEqual(snapshots(rows)[-1]["customers"], [])
 
     def test_ac_p1_10_table_busy_skips_turn_without_event(self):
+        """Mọi bàn đều có khách (fixture) -> lượt khách bị bỏ, không phát event."""
         with Workdir() as w:
             sc = {"stock": FULL_STOCK, "customers": [
-                {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "patience_ticks_left": PATIENCE}]}
+                {"id": f"C{i + 1}", "table_id": tid, "dish_id": "ca_loc_nuong_trui", "patience_ticks_left": PATIENCE}
+                for i, tid in enumerate(TABLES)]}
             rows = run_quan(w, sc, ticks=FIRST + INTERVAL, every=50)
             self.assertEqual(events(rows, "customer_arrived"), [])
             self.assertEqual(events(rows, "no_dish"), [])
@@ -93,18 +96,15 @@ class TestQuanLat3Schedule(unittest.TestCase):
                 rows = run_quan(w, {"stock": {"ca_loc": 1, "bong_sung": 1, "ca_linh": 3}}, ticks=FIRST, seed=seed)
                 self.assertEqual(events(rows, "customer_arrived")[0]["data"]["dish_id"], "ca_loc_nuong_trui", seed)
 
-    def test_ac_p1_10_second_customer_follows_interval(self):
-        """Khách 1 bỏ về trước lượt 2 -> lượt 2 ở FIRST + INTERVAL lấy lại T1, id nối tiếp C2."""
+    def test_ac_p1_10_next_customers_take_smallest_free_table(self):
+        """Lượt k ở FIRST + k·INTERVAL lấy bàn trống id nhỏ nhất (T1 -> T2 -> ...), id khách nối tiếp C1, C2, ..."""
         with Workdir() as w:
-            rows = run_quan(w, {"stock": FULL_STOCK}, ticks=FIRST + INTERVAL + PATIENCE, every=600)
+            n = len(TABLES)
+            rows = run_quan(w, {"stock": FULL_STOCK}, ticks=FIRST + (n - 1) * INTERVAL, every=600)
             arr = events(rows, "customer_arrived")
-            left = events(rows, "customer_left")
-            self.assertEqual(arr[0]["tick"], FIRST)
-            self.assertTrue(left and left[0]["tick"] == FIRST + PATIENCE)
-            later = [e["tick"] for e in arr[1:]]
-            self.assertTrue(all((t - FIRST) % INTERVAL == 0 for t in later), later)
-            self.assertEqual(arr[1]["data"]["order_id"], "C2")
-            self.assertEqual(arr[1]["data"]["table_id"], "T1")
+            self.assertEqual([e["tick"] for e in arr], [FIRST + k * INTERVAL for k in range(n)])
+            self.assertEqual([e["data"]["table_id"] for e in arr], TABLES)
+            self.assertEqual([e["data"]["order_id"] for e in arr], [f"C{k + 1}" for k in range(n)])
 
     def test_ac_p1_10_schedule_uses_phase_tick_when_shift_shortened(self):
         with Workdir() as w:
@@ -126,14 +126,14 @@ class TestQuanLat3Schedule(unittest.TestCase):
     def test_ac_p1_10_dish_choice_deterministic_and_covers_menu(self):
         seen = set()
         with Workdir() as w:
-            for seed in range(1, 13):
+            for seed in range(1, 41):
                 a = events(run_quan(w, {"stock": FULL_STOCK}, ticks=FIRST, seed=seed, name="a.jsonl"), "customer_arrived")
                 b = events(run_quan(w, {"stock": FULL_STOCK}, ticks=FIRST, seed=seed, name="b.jsonl"), "customer_arrived")
                 self.assertEqual(a, b, "cùng seed -> cùng món")
                 seen.add(a[0]["data"]["dish_id"])
                 with open(w.path("a.jsonl"), "rb") as fa, open(w.path("b.jsonl"), "rb") as fb:
                     self.assertEqual(fa.read(), fb.read())
-        self.assertEqual(seen, set(MENU), "chọn đều trong các món đủ kho: 12 seed phải gặp đủ 3 món")
+        self.assertEqual(seen, set(MENU), "chọn đều trong các món đủ kho: 40 seed phải gặp đủ mọi món của menu")
 
 
 class TestQuanLat3Patience(unittest.TestCase):
