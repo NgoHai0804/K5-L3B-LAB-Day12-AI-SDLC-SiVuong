@@ -12,7 +12,7 @@
 | AC-P1-08 | Hợp đồng file kho §1: ghi 1 lần khi `docked`/`time`/`fainted`, **không** ghi khi `tick_limit`, `fainted` ⇒ `{}`, bỏ mục 0, khoá gốc `items`, `gather_end.inventory` khớp file, sai schema/id/số âm ⇒ thoát 2: `tests/test_gather_s2.py::TestGhiKho` (10 test) | [`lat2-kho.json`](lat2-kho.json) · [`lat2-quan.jsonl`](lat2-quan.jsonl) · [`test-duc.txt`](test-duc.txt) | Đạt |
 
 ## Đánh giá ngắn
-- Yêu cầu nào đạt / chưa đạt: Lát 1 (AC-P1-01..04, Hải) — **đạt**. Lát 2 (AC-P1-05..08, Đức) — **đạt**. Tổng **68 test xanh** sau khi Hải nới assert ở `test_gather_water.py:136` (xem dưới).
-- **Việc còn mở (1):** `docs/clarify.md` #5 — `_try_hold` của lát 1 phát `hold_full` **thiếu khoá `kind`**, trái hợp đồng đóng băng §4. Đức đã thêm `kind` (giữ nguyên các khoá chẩn đoán của lát 1); `tests/test_gather_water.py:136` dùng `assertEqual` chính xác nên **đỏ 1 test** cho tới khi Hải nới assert. Bản sửa gợi ý nằm trong `docs/clarify.md` mục "Ghi chú #5". Không mở ADR vì đây là sửa cho **khớp** hợp đồng, không phải đổi hợp đồng.
+- Yêu cầu nào đạt / chưa đạt: Lát 1 (AC-P1-01..04, Hải) — **đạt**. Lát 2 (AC-P1-05..08, Đức) — **đạt**. Tổng **68/68 test xanh**.
+- **Đã đóng:** `docs/clarify.md` #5 — `_try_hold` của lát 1 phát `hold_full` thiếu khoá `kind`, trái hợp đồng đóng băng §4. Đức đã thêm `kind` (giữ nguyên các khoá chẩn đoán của lát 1) và nới `assertEqual` ở `tests/test_gather_water.py:131` thành so theo từng khoá, nên test không còn vỡ khi payload được bổ sung khoá mới. Không mở ADR vì đây là sửa cho **khớp** hợp đồng, không phải đổi hợp đồng.
 - Bàn giao Sáng→Tối đã chạy thật: `gather --inventory-out lat2-kho.json` → `quan --inventory lat2-kho.json`, không lỗi.
 - Xác định (determinism): cùng `--seed 1` cho JSONL giống từng byte — hash ở cuối [`test-duc.txt`](test-duc.txt).

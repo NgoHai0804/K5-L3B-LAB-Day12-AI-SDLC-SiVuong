@@ -8,9 +8,11 @@
 | 4 | 2026-11-21 | Bắt thất bại vì giỏ đầy thì có vào hồi chiêu `catch_cd_ticks` không? | **Giả định:** không. Hồi chiêu chỉ đặt khi bắt **thành công**, để người chơi không bị phạt vì một cú bấm không có tác dụng. | Đức (PO) |
 | 5 | 2026-11-21 | **Xung đột hợp đồng:** `docs/contracts/README.md` §4 đóng băng `hold_full` → `data` = `kind`, nhưng `_try_hold` của lát 1 phát `action`/`node_id`/`required`/`free` và **không có `kind`**. | **Chốt theo hợp đồng:** `hold_full` **phải** có `kind` (§4 là nguồn sự thật, test ẩn bám theo nó). Đức thêm `kind` vào payload và **giữ nguyên** các khoá chẩn đoán của lát 1 (§2: bên đọc bỏ qua trường chưa biết). **Hệ quả:** `tests/test_gather_water.py:136` dùng `assertEqual` chính xác nên đỏ — **Hải cần nới assert** (xem ghi chú dưới bảng). Không mở ADR vì đây là sửa cho **khớp** hợp đồng, không phải đổi hợp đồng. | Đức (PO), Hải xác nhận |
 
-## Ghi chú #5 — việc Hải cần làm (1 dòng)
+## Ghi chú #5 — ĐÃ XỬ LÝ (68/68 xanh)
 
-`tests/test_gather_water.py:136` đang khoá cứng payload cũ. Sửa thành so theo tập con để không vỡ khi thêm khoá:
+`tests/test_gather_water.py` khoá cứng payload cũ bằng `assertEqual` nên đỏ khi thêm `kind`.
+Đức (người dự phòng của Hải, `TEAM.md`) đã nới thành so theo từng khoá — `AGENTS.md` cấm để nhánh chính hỏng,
+và đây là **nới assert cho khớp hợp đồng**, không phải sửa test để che luật sai. Bản đã áp:
 
 ```python
     def test_06_try_hold_reports_full_with_free_and_required(self):
