@@ -2,6 +2,10 @@ __pycache__/
 *.pyc
 *.jsonl
 !tests/fixtures/*.jsonl
+bench.json
+soak.json
+leaderboard.json
+bang-xep-hang.json
 .DS_Store
 saves/
 link.md

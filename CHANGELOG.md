@@ -9,6 +9,9 @@
 
 ## Unreleased
 
+### Hỗ trợ repo
+- Bỏ qua các báo cáo/luồng chạy sinh ra (`bench.json`, `soak.json`, `leaderboard.json`, `bang-xep-hang.json`) để tránh commit nhầm dữ liệu tạm.
+
 ### Contract v1.2 (Phase 3 — "Mùa Nước Nổi") — BREAKING
 - Kho đếm `{"items": {kind: n}}` → kho cá thể `{"items": [{"id", "kind", "fresh"}]}`. File kho đếm hoặc sai schema/kind lạ/id trùng/fresh ngoài [0,100] → mã 2.
 - `gather.hold`, `quan.stock` là mảng cá thể; `customers[].reserved` là mảng id cá thể; `lost`, `cook_started.items`, `gather_end.inventory` theo cùng schema.
