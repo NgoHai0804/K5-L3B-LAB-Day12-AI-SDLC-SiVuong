@@ -1,0 +1,1 @@
+{"gather":{"player":{"pos":[12,0],"catch_cd_ticks":25},"hold":["ca_linh","ca_linh","ca_linh","ca_loc","bong_sung","bong_sung","bong_dien_dien","ca_linh","ca_linh","ca_linh","ca_loc","bong_sung"],"nodes":[{"id":"N1","kind":"bong_dien_dien","pos":[12,0],"regrow_ticks":600}]}}
