@@ -88,13 +88,19 @@ class ShopSim:
 class DaySim:
     mode = "day"
 
-    def __init__(self, tuning, scenario, streams, ids, days=1, extras=None, day_tuning=None, start_day=1):
-        if not (1 <= days <= len(tuning["day_plan"])):
-            raise BadInput(f"--days phải trong [1, {len(tuning['day_plan'])}]")
+    def __init__(self, tuning, scenario, streams, ids, days=1, extras=None, day_tuning=None, start_day=1,
+                 plan_repeat=False):
+        n_plan = len(tuning["day_plan"])
+        if plan_repeat:
+            if days < 1:
+                raise BadInput("--days phải >= 1")
+        elif not (1 <= days <= n_plan):
+            raise BadInput(f"--days phải trong [1, {n_plan}]")
         self.base_tuning = tuning
         self.rng = streams
         self.ids = ids
         self.days_total = days
+        self.plan_repeat = plan_repeat
         self.extras = extras
         self.day_tuning = day_tuning  # sáng tạo (bản chơi): tuning riêng theo Ngày; headless = None
         blk = scenario.get("day", {})
@@ -139,7 +145,7 @@ class DaySim:
         return self.day_tuning(self.day, dict(self.active)) if self.day_tuning else self.base_tuning
 
     def plan_today(self):
-        p = self.plan[self.day - 1]
+        p = self.plan[(self.day - 1) % len(self.plan)]
         return {"dishes": dict(p["dishes"]), "ingredients": dict(p["ingredients"])}
 
     def _active_values(self):
@@ -176,7 +182,7 @@ class DaySim:
         if "stock" in self.quan_tpl or "reputation" in self.quan_tpl:
             raise BadInput("chạy day không nhận quan.stock / quan.reputation")
         self.sub = QuanSim(t, self.quan_tpl, self.rng, self.ids, inventory=inventory,
-                           plan_dishes=list(self.plan[self.day - 1]["dishes"]),
+                           plan_dishes=list(self.plan[(self.day - 1) % len(self.plan)]["dishes"]),
                            money=self.money, earned=self.earned, reputation=self.reputation)
         out.append(("quan", "phase_start", {}))
 

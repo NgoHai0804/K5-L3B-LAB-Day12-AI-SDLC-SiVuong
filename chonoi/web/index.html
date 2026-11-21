@@ -22,6 +22,9 @@
 const cv = document.getElementById("c");
 const ctx = cv.getContext("2d");
 let snap = null, offline = false, quitted = false;
+let hiC = false;  // chế độ tương phản cao (phím H bật/tắt)
+const CAPS = [];  // phụ đề SFX: hiện cả khi tắt tiếng
+function say(txt) { CAPS.push({ text: txt, t0: performance.now() }); if (CAPS.length > 4) CAPS.shift(); }
 const W2S = { sx: (x) => x, sy: (y) => y, s: 1 };
 
 // ============================================================ TIỆN ÍCH
@@ -33,8 +36,9 @@ function hash(n) { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x 
 function text(s, x, y, o = {}) {
   ctx.font = (o.weight || "600") + " " + (o.size || 18) + "px " + FONT;
   ctx.textAlign = o.align || "left"; ctx.textBaseline = o.base || "alphabetic";
-  if (o.stroke) { ctx.lineWidth = o.strokeW || 4; ctx.strokeStyle = o.stroke; ctx.lineJoin = "round"; ctx.strokeText(s, x, y); }
-  ctx.fillStyle = o.color || "#fff6e6"; ctx.fillText(s, x, y);
+  const stroke = o.stroke || (hiC ? "rgba(0,0,0,.95)" : null);
+  if (stroke) { ctx.lineWidth = (o.strokeW || 4) + (hiC && !o.stroke ? 2 : 0); ctx.strokeStyle = stroke; ctx.lineJoin = "round"; ctx.strokeText(s, x, y); }
+  ctx.fillStyle = o.color || (hiC ? "#ffffff" : "#fff6e6"); ctx.fillText(s, x, y);
 }
 function textW(s, size = 18, weight = "600") { ctx.font = weight + " " + size + "px " + FONT; return ctx.measureText(s).width; }
 function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
@@ -42,9 +46,9 @@ function panel(x, y, w, h, o = {}) {
   ctx.save();
   if (o.shadow !== false) { ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4; }
   rr(x, y, w, h, o.r ?? 12);
-  ctx.fillStyle = o.fill || "rgba(10,34,58,.82)"; ctx.fill(); ctx.restore();
+  ctx.fillStyle = o.fill || (hiC ? "rgba(0,0,0,.96)" : "rgba(10,34,58,.82)"); ctx.fill(); ctx.restore();
   rr(x, y, w, h, o.r ?? 12);
-  ctx.lineWidth = o.lw || 2; ctx.strokeStyle = o.stroke || "rgba(160,230,255,.45)"; ctx.stroke();
+  ctx.lineWidth = (o.lw || 2) + (hiC ? 2 : 0); ctx.strokeStyle = o.stroke || (hiC ? "#ffffff" : "rgba(160,230,255,.45)"); ctx.stroke();
 }
 function bar(x, y, w, h, frac, col, bg = "rgba(0,0,0,.35)") {
   rr(x, y, w, h, h / 2); ctx.fillStyle = bg; ctx.fill();
@@ -133,7 +137,8 @@ addEventListener("keydown", (e) => {
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright", "tab"].includes(k)) e.preventDefault();
   if (k === "shift") { down.add("sprint"); pushInput(); return; }
   if (e.repeat) return;
-  if (k === "m") { muted = !muted; return; }
+  if (k === "m") { muted = !muted; say(muted ? "Tiếng: TẮT (phụ đề vẫn hiện)" : "Tiếng: BẬT"); return; }
+  if (k === "h") { hiC = !hiC; say(hiC ? "Tương phản cao: BẬT" : "Tương phản cao: TẮT"); return; }
   const st = stage(), c = camp();
   if (!snap || quitted) return;
   if (snap.paused && ["gather", "quan", "shop"].includes(st)) {
@@ -205,21 +210,28 @@ function beep(freq, dur = 0.12, type = "sine", vol = 0.12, slide = 0) {
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
   o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + dur + 0.02);
 }
+// Phụ đề cho các hiệu ứng âm thanh đã triển khai (hiện cả khi TẮT tiếng — phím M).
+const SUB = {
+  gather: "SFX: Hái rau", catch: "SFX: Bắt cá", full: "SFX: Giỏ đầy", hurt: "SFX: Út Sen bị thương",
+  bite: "SFX: Cá Sấu đớp", dive: "SFX: Lặn xuống", surface: "SFX: Ngoi lên thở", coin: "SFX: Nhận tiền",
+  cook: "SFX: Bắt đầu nấu", ding: "SFX: Món chín!", pick: "SFX: Chọn", bad: "SFX: Cảnh báo",
+  arrive: "SFX: Khách tới", spoil: "SFX: Đồ bị ươn",
+};
 const SFX = {
-  gather: () => { beep(660, 0.08, "triangle"); setTimeout(() => beep(880, 0.1, "triangle"), 70); },
-  catch: () => { beep(300, 0.15, "square", 0.06, 500); setTimeout(() => beep(990, 0.12, "triangle"), 120); },
-  full: () => beep(180, 0.25, "sawtooth", 0.06),
-  hurt: () => beep(140, 0.35, "sawtooth", 0.1, -60),
-  bite: () => { beep(90, 0.3, "sawtooth", 0.14, -30); setTimeout(() => beep(70, 0.3, "square", 0.08), 90); },
-  dive: () => beep(420, 0.2, "sine", 0.06, -250),
-  surface: () => beep(260, 0.2, "sine", 0.06, 400),
-  coin: () => { beep(988, 0.08, "square", 0.05); setTimeout(() => beep(1319, 0.18, "square", 0.05), 80); },
-  cook: () => beep(220, 0.3, "triangle", 0.05, 80),
-  ding: () => beep(1568, 0.25, "sine", 0.08),
-  pick: () => beep(520, 0.08, "triangle", 0.07),
-  bad: () => { beep(330, 0.18, "sawtooth", 0.05); setTimeout(() => beep(247, 0.3, "sawtooth", 0.05), 150); },
-  arrive: () => { beep(784, 0.1, "sine", 0.06); setTimeout(() => beep(1046, 0.12, "sine", 0.06), 90); },
-  spoil: () => beep(200, 0.2, "triangle", 0.05, -80),
+  gather: () => { say(SUB.gather); beep(660, 0.08, "triangle"); setTimeout(() => beep(880, 0.1, "triangle"), 70); },
+  catch: () => { say(SUB.catch); beep(300, 0.15, "square", 0.06, 500); setTimeout(() => beep(990, 0.12, "triangle"), 120); },
+  full: () => { say(SUB.full); beep(180, 0.25, "sawtooth", 0.06); },
+  hurt: () => { say(SUB.hurt); beep(140, 0.35, "sawtooth", 0.1, -60); },
+  bite: () => { say(SUB.bite); beep(90, 0.3, "sawtooth", 0.14, -30); setTimeout(() => beep(70, 0.3, "square", 0.08), 90); },
+  dive: () => { say(SUB.dive); beep(420, 0.2, "sine", 0.06, -250); },
+  surface: () => { say(SUB.surface); beep(260, 0.2, "sine", 0.06, 400); },
+  coin: () => { say(SUB.coin); beep(988, 0.08, "square", 0.05); setTimeout(() => beep(1319, 0.18, "square", 0.05), 80); },
+  cook: () => { say(SUB.cook); beep(220, 0.3, "triangle", 0.05, 80); },
+  ding: () => { say(SUB.ding); beep(1568, 0.25, "sine", 0.08); },
+  pick: () => { say(SUB.pick); beep(520, 0.08, "triangle", 0.07); },
+  bad: () => { say(SUB.bad); beep(330, 0.18, "sawtooth", 0.05); setTimeout(() => beep(247, 0.3, "sawtooth", 0.05), 150); },
+  arrive: () => { say(SUB.arrive); beep(784, 0.1, "sine", 0.06); setTimeout(() => beep(1046, 0.12, "sine", 0.06), 90); },
+  spoil: () => { say(SUB.spoil); beep(200, 0.2, "triangle", 0.05, -80); },
 };
 
 // ============================================================ FX (chỉ client)
@@ -295,6 +307,37 @@ function floaters() {
     ctx.globalAlpha = Math.min(1, 2 * (1.8 - age));
     text(f.text, sx(f.x), sy(yy), { size: 20, align: "center", color: f.color, stroke: "rgba(5,15,30,.92)", strokeW: 5, weight: "800" });
     ctx.globalAlpha = 1;
+  }
+}
+
+// ============================================================ CẢNH BÁO + PHỤ ĐỀ
+function warningBanners(w, list) {
+  let y = 150;
+  for (const it of list) {
+    const sz = hiC ? 30 : 27, label = (it.icon ? it.icon + " " : "") + it.text;
+    const tw = textW(label, sz, "900") + 40, hh = sz + 20;
+    if (hiC) {  // tương phản cao: nền đen đặc, viền trắng, chữ trắng
+      ctx.fillStyle = "#000000"; rr(w / 2 - tw / 2, y, tw, hh, 8); ctx.fill();
+      ctx.lineWidth = 4; ctx.strokeStyle = "#ffffff"; ctx.stroke();
+      text(label, w / 2, y + hh * .68, { size: sz, align: "center", color: "#ffffff", weight: "900" });
+    } else {
+      const pulse = .5 + .25 * Math.sin(now() * 8);
+      ctx.fillStyle = it.bg + pulse.toFixed(2) + ")"; rr(w / 2 - tw / 2, y, tw, hh, 8); ctx.fill();
+      text(label, w / 2, y + hh * .68, { size: sz, align: "center", color: it.fg, stroke: "rgba(0,0,0,.85)", strokeW: 5, weight: "900" });
+    }
+    y += hh + 10;
+  }
+}
+function drawCaptions(w, h) {
+  const T = performance.now(), show = CAPS.filter((c) => (T - c.t0) / 1000 < 2.4).slice(-2);
+  let y = h - 74 - (show.length - 1) * 32;
+  for (const c of show) {
+    const age = (T - c.t0) / 1000, a = Math.min(1, 2 * (2.4 - age)), tw = textW(c.text, 20, "700") + 30;
+    ctx.globalAlpha = a;
+    panel(w / 2 - tw / 2, y - 24, tw, 36, { r: 8, shadow: false, fill: hiC ? "rgba(0,0,0,.98)" : "rgba(8,20,38,.9)", stroke: hiC ? "#ffffff" : "rgba(160,230,255,.55)" });
+    text(c.text, w / 2, y + 1, { size: 20, align: "center", color: "#ffffff", weight: "800" });
+    ctx.globalAlpha = 1;
+    y += 32;
   }
 }
 
@@ -877,21 +920,24 @@ function gatherHUD(w, h, info) {
       if (sp) text("ươn", x0 + sz / 2, y0 + 20, { size: 16, align: "center", color: "#e8d8c0", stroke: "#3a2a1a", strokeW: 3, weight: "800" });
     }
   }
-  // cảnh báo
+  // cảnh báo dễ nhận biết (chữ + biểu tượng; tương phản cao khi bật H)
   const monNear = (snap.monsters || []).some((m) => m.state === "chase" || (p.pos[1] >= 10 && Math.hypot(m.pos[0] - p.pos[0], m.pos[1] - p.pos[1]) <= 12));
+  const lowOxy = p.oxygen_max_ticks && of < .25 && !at;
   if (monNear) {
     const a = .45 + .25 * Math.sin(now() * 8);
-    ctx.lineWidth = 14; ctx.strokeStyle = `rgba(170,60,255,${a})`; ctx.strokeRect(7, 7, w - 14, h - 14);
-    text("Thủy quái!", w / 2, 160, { size: 30, align: "center", color: "#f1d4ff", stroke: "#3a0a5a", strokeW: 7, weight: "900" });
+    ctx.lineWidth = hiC ? 18 : 14; ctx.strokeStyle = `rgba(170,60,255,${hiC ? .95 : a})`; ctx.strokeRect(7, 7, w - 14, h - 14);
   }
-  if (p.oxygen_max_ticks && of < .25 && !at) {
+  if (lowOxy) {
     const a = .2 + .2 * Math.sin(now() * 8);
     const rg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * .3, w / 2, h / 2, Math.max(w, h) * .7);
-    rg.addColorStop(0, "rgba(200,0,0,0)"); rg.addColorStop(1, `rgba(200,0,0,${a})`);
+    rg.addColorStop(0, "rgba(200,0,0,0)"); rg.addColorStop(1, `rgba(200,0,0,${hiC ? Math.min(.9, a + .35) : a})`);
     ctx.fillStyle = rg; ctx.fillRect(0, 0, w, h);
-    text(p.oxygen_ticks === 0 ? "Hết hơi! Ngoi lên ngay!" : "Sắp hết oxy — ngoi lên thở!", w / 2, monNear ? 200 : 160, { size: 26, align: "center", color: "#ffe0e0", stroke: "#600", strokeW: 6, weight: "800" });
   }
-  text("WASD bơi · Shift sprint · E hái/cập bến · Space bắt · Esc tạm dừng", w / 2, h - 10, { size: 18, align: "center", color: "rgba(230,250,255,.75)", stroke: "rgba(0,20,40,.6)", strokeW: 3 });
+  const warns = [];
+  if (monNear) warns.push({ icon: "\u26A0", text: "THỦY QUÁI GẦN ĐÂY!", fg: "#f1d4ff", bg: "rgba(90,10,140," });
+  if (lowOxy) warns.push({ icon: "\u26A0", text: p.oxygen_ticks === 0 ? "HẾT HƠI — NGOI LÊN NGAY!" : "SẮP HẾT OXY — NGOI LÊN!", fg: "#ffe0e0", bg: "rgba(150,0,0," });
+  warningBanners(w, warns);
+  text("WASD bơi · Shift sprint · E hái/cập bến · Space bắt · H tương phản · M tiếng · Esc tạm dừng", w / 2, h - 10, { size: 18, align: "center", color: "rgba(230,250,255,.85)", stroke: "rgba(0,20,40,.6)", strokeW: 3 });
 }
 
 // ============================================================ TỐI — QUÁN DẠNG QUẦY BAR
@@ -1127,6 +1173,8 @@ function quanHUD(w, h, L) {
   // thanh treo phiếu gọi món (kiểu quầy bar)
   ctx.fillStyle = "#c9c9c9"; ctx.fillRect(14, 16, aw, 4); ctx.fillStyle = "#888"; ctx.fillRect(14, 20, aw, 2);
   const cs = [...(snap.customers || [])].sort((a, b) => a.order_tick - b.order_tick);
+  const angry = cs.filter((c) => c.state === "waiting" && c.patience_ticks_left / ((meta.patience_s || 60) * 60) < .25);
+  warningBanners(w, angry.length ? [{ icon: "\u26A0", text: (angry.length > 1 ? angry.length + " KHÁCH" : "KHÁCH") + " SẮP GIẬN!", fg: "#ffe0e0", bg: "rgba(150,0,0," }] : []);
   const tw = 196, gap = 10, cx0 = 14 + 250;
   cs.forEach((cu, i) => {
     const x0 = cx0 + i * (tw + gap), y0 = 22;
@@ -1196,7 +1244,7 @@ function quanHUD(w, h, L) {
     text(rec, x0 + 54, y + 9, { size: 16, color: "rgba(255,246,230,.7)" });
     text(d.price + "k", x0 + side - 16, y - 12, { size: 18, align: "right", color: "#ffcf6b", weight: "800" });
   });
-  text("WASD đi · E nấu/bưng/dọn · Esc tạm dừng", 14 + aw / 2, h - 10, { size: 18, align: "center", color: "rgba(255,240,210,.7)", stroke: "rgba(0,0,0,.5)", strokeW: 3 });
+  text("WASD đi · E nấu/bưng/dọn · H tương phản · M tiếng · Esc tạm dừng", 14 + aw / 2, h - 10, { size: 18, align: "center", color: "rgba(255,240,210,.85)", stroke: "rgba(0,0,0,.5)", strokeW: 3 });
 }
 
 // ============================================================ CÁC MÀN
@@ -1306,7 +1354,7 @@ function drawTitle(w, h) {
     rr(x + 30, yy, W - 60, 46, 10); ctx.fillStyle = sel ? "#ffd36b" : "rgba(255,255,255,.06)"; ctx.fill();
     text((sel ? "▶ " : "") + lab, w / 2, yy + 31, { size: 22, align: "center", weight: "800", color: sel ? "#3a2208" : "#fff6e6" });
   });
-  text("↑↓ chọn · Enter xác nhận · M tắt tiếng", w / 2, py + H - 18, { size: 16, align: "center", color: "rgba(255,246,230,.7)" });
+  text("↑↓ chọn · Enter xác nhận · M tắt tiếng · H tương phản cao", w / 2, py + H - 18, { size: 16, align: "center", color: "rgba(255,246,230,.8)" });
   text("Sáng: WASD bơi · Shift sprint · E hái/cập bến · Space bắt cá    Tối: WASD đi · E nấu/bưng/dọn", w / 2, py + H + 40, { size: 18, align: "center", color: "rgba(230,250,255,.8)", stroke: "rgba(0,0,0,.5)", strokeW: 3 });
   text("Nhân vật, bối cảnh và đồ họa là bản gốc của lab · Day 12 AI SDLC", w / 2, h - 14, { size: 16, align: "center", color: "rgba(255,246,230,.5)" });
 }
@@ -1351,6 +1399,11 @@ function overlay(w, h) {
   if (shake) shake = Math.max(0, shake - .6);
   if (offline && !quitted) text("Mất kết nối tới máy chủ (đã tắt chưa?)", w / 2, h - 50, { align: "center", color: "#ff8a80", size: 18 });
   if (snap.error) text("Luật báo lỗi — xem terminal. R để chơi lại.", w / 2, h - 76, { align: "center", color: "#ff8a80", size: 18 });
+  drawCaptions(w, h);
+  if (hiC) {
+    panel(w - 200, h - 44, 188, 30, { r: 6, shadow: false, fill: "#000000", stroke: "#ffffff" });
+    text("TƯƠNG PHẢN CAO · H", w - 106, h - 22, { size: 16, align: "center", color: "#ffffff", weight: "800" });
+  }
 }
 
 // ============================================================ VÒNG VẼ
@@ -1369,14 +1422,14 @@ function frame() {
   if (!snap) { text(offline ? "Không kết nối được máy chủ…" : "Đang tải…", w / 2, h / 2, { align: "center", size: 20 }); return; }
   const st = stage(), ph = phase();
   try {
-    if (st === "ending") { drawEnding(w, h); return; }
+    if (st === "ending") { drawEnding(w, h); overlay(w, h); return; }
     if (st === "shop" || (st === "dayresult" && ph === "shop")) {
       if (st === "shop") drawShop(w, h); else { drawShop(w, h); drawDayResult(w, h); }
       if (snap.paused) drawPause(w, h);
       floaters(); overlay(w, h); return;
     }
     const info = ph === "quan" ? drawQuanWorld(w, h) : drawGatherWorld(w, h);
-    if (st === "title") { drawTitle(w, h); return; }
+    if (st === "title") { drawTitle(w, h); overlay(w, h); return; }
     floaters();
     if (ph === "quan") quanHUD(w, h, info); else gatherHUD(w, h, info);
     if (st === "dayintro") drawDayIntro(w, h);

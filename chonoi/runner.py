@@ -22,13 +22,15 @@ from .sim.gather import GatherSim
 from .sim.quan import QuanSim
 
 
-def build_sim(mode, tuning, scenario, seed, inventory, days=1, extras=None, day_tuning=None, start_day=1):
+def build_sim(mode, tuning, scenario, seed, inventory, days=1, extras=None, day_tuning=None, start_day=1,
+              plan_repeat=False):
     streams, ids = Streams(seed), IdAllocator()
     if mode == "gather":
         return GatherSim(tuning, scenario, streams, ids, extras=extras)
     if mode == "quan":
         return QuanSim(tuning, scenario, streams, ids, inventory=inventory)
-    return DaySim(tuning, scenario, streams, ids, days=days, extras=extras, day_tuning=day_tuning, start_day=start_day)
+    return DaySim(tuning, scenario, streams, ids, days=days, extras=extras, day_tuning=day_tuning,
+                  start_day=start_day, plan_repeat=plan_repeat)
 
 
 def _vals(sim):

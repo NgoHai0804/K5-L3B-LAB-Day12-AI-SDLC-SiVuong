@@ -368,7 +368,21 @@ def main(argv=None) -> int:
     p.add_argument("--port", type=int, default=8000, help="0 = cổng ngẫu nhiên")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--save-dir", dest="save_dir", default="saves")
+    p.add_argument("--export-leaderboard", dest="export_leaderboard",
+                   help="xuất bảng xếp hạng cục bộ đã sắp ra file JSON rồi thoát")
+    p.add_argument("--leaderboard", default=None, help="file store bảng xếp hạng (mặc định leaderboard.json)")
     a = p.parse_args(argv)
+    if a.export_leaderboard:
+        from .leaderboard import DEFAULT_STORE, export as export_board
+        try:
+            export_board(a.leaderboard or DEFAULT_STORE, a.export_leaderboard)
+        except BadInput as e:
+            sys.stderr.write(f"đầu vào sai: {e}\n")
+            return 2
+        except OSError as e:
+            sys.stderr.write(f"lỗi ghi: {e}\n")
+            return 1
+        return 0
     try:
         tuning = load_contract()["tuning"]
         game = CampaignGame(tuning, a.seed, a.save_dir)

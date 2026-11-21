@@ -1,4 +1,12 @@
 # Changelog
+
+## v1.0.0 — Phase 4 (2026-11-21) 🎉
+### Contract v1.3 (Phase 4 — "Bench + đóng gói + Release") — tương thích ngược
+- Thêm `bench_cmd` (benchmark **có render**, cảnh sáng `gather`, xuất `avg_fps`, `p1_low_fps`, `frames`, `measured_s`, `load_ms`), `soak_cmd` (soak **headless nhiều Ngày**, bot tất định, `days_completed`/`crashes`), và `extensions: ["leaderboard", "subtitles"]`.
+- Phần gameplay/tuning/kho cá thể/JSONL của v1.2 **giữ nguyên**; `contract_version:"1.3"`, vẫn đọc được `"1.2"` (`chonoi/contract.py`).
+- **Bảng xếp hạng cục bộ** (`leaderboard.json`, file JSON riêng — không phải JSONL): ghi **một** mục cho lượt `--mode day` đủ **5 Ngày chuẩn**, không scenario, `reason:"days_complete"`; sắp điểm giảm dần (hòa ổn định), giữ tối đa **10** mục, tên Unicode khác rỗng. `headless --leaderboard <file> --player-name <tên>`; xuất bằng `play --export-leaderboard <file>`. Thiếu một trong hai cờ hoặc sai mode → mã 2.
+- **Cửa sổ chơi:** ba cảnh báo người chơi (sáng "THỦY QUÁI GẦN ĐÂY!", "SẮP HẾT OXY"; tối "KHÁCH SẮP GIẬN!"), **chế độ tương phản cao** (phím `H`), và **phụ đề SFX** hiện cả khi tắt tiếng (`M`). Tất cả **tắt ở headless** — lõi không đổi.
+
 ## Unreleased
 
 ### Contract v1.2 (Phase 3 — "Mùa Nước Nổi") — BREAKING

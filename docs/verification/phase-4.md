@@ -1,0 +1,16 @@
+# Ma trận truy vết Phase 4 (Test Contract v1.3) — "Bench + đóng gói + Release v1.0.0"
+
+| AC | Cách kiểm chứng | Bằng chứng | Kết quả (đạt / chưa đạt — ghi trung thực) |
+|---|---|---|---|
+| AC-P4-01 Contract v1.3 + mở rộng | `game.contract.json` có `contract_version:"1.3"`, `bench_cmd`, `soak_cmd`, `extensions:["leaderboard","subtitles"]`; `chonoi/contract.py` đọc được v1.3 & v1.2; phần gameplay/tuning/kho/JSONL v1.2 giữ nguyên | `game.contract.json`, `chonoi/contract.py`, `tests/test_phase4.py::ContractV13` | Đạt |
+| AC-P4-02 Bench có render | `<bench_cmd> --seed 42 --duration 30 --out bench.json` → mã 0, JSON đúng 5 trường `avg_fps,p1_low_fps,frames,measured_s,load_ms` | `docs/proof/phase-4/bench.json` (`avg_fps≈404.7`, `p1_low_fps≈142.6`, `frames=12143`), `chonoi/bench.py`, `tests/test_phase4.py::Bench` | Đạt |
+| AC-P4-03 Soak nhiều Ngày | `<soak_cmd> --seed 7 --days 10 --out soak.json` → `days_completed==days`, `crashes==0`, JSON đúng 5 trường | `docs/proof/phase-4/soak.json` (`10/10`, `crashes=0`, `duration_s≈3.9`), `chonoi/soak.py`, `tests/test_phase4.py::Soak` | Đạt |
+| AC-P4-04 Bảng xếp hạng cục bộ | `--mode day --days 5` không scenario → ghi **1** mục; sắp điểm giảm dần (hòa ổn định); giữ tối đa 10; `name` Unicode khác rỗng; store JSON `{"entries":[...]}` | `chonoi/leaderboard.py`, `chonoi/headless.py`, `tests/test_phase4.py::LeaderboardStore` + `HeadlessLeaderboard::test_full_standard_five_days_records_once` | Đạt |
+| AC-P4-05 Cổng ghi + mã thoát | Thiếu một trong `--leaderboard`/`--player-name`, hoặc dùng với mode ≠ day → mã 2 và **không** ghi file; chưa đủ 5 Ngày / có scenario → không ghi | `chonoi/headless.py`, `tests/test_phase4.py::HeadlessLeaderboard` | Đạt |
+| AC-P4-06 Ba cảnh báo + tương phản cao | Sáng: "THỦY QUÁI GẦN ĐÂY!", "SẮP HẾT OXY"; tối: "KHÁCH SẮP GIẬN!"; phím **H** bật tương phản cao (nền đen, viền/chữ trắng) | `chonoi/web/index.html`, `docs/proof/phase-4/warn_customer_highcontrast.png` (đã đối chiếu: banner đen "⚠ KHÁCH SẮP GIẬN!", huy hiệu "TƯƠNG PHẢN CAO"), `docs/proof/phase-4/warn_gather_highcontrast.png` (chụp cảnh báo thủy quái, tương phản cao) | Đạt (2 ảnh high-contrast); ảnh chế độ thường `warn_*_normal.png` còn lại chụp ở trạng thái khác nên chỉ dùng tham khảo |
+| AC-P4-07 Phụ đề SFX | Mỗi tiếng (bia, hái, bắt, tiền, cảnh báo…) đẩy phụ đề qua `say()` và vẽ bằng `drawCaptions()` → hiện cả khi tắt tiếng (M) | `chonoi/web/index.html` (`CAPS`,`say`,`SUB`,`drawCaptions`), `docs/proof/phase-4/subtitle_soundoff.png` | Đạt |
+| AC-P4-08 Đóng gói & tài liệu | Tag `phase-4`, Release `v1.0.0`, `docs/verification/phase-4.md`, `docs/retro.md`, `docs/members/<handle>.md`×5, `CHANGELOG.md`, `docs/clarify.md`, `docs/ai-usage-log.md` cập nhật; TEAM.md điền (5 người) khớp `team_size` | `git tag phase-4`, Release `v1.0.0`, các file trên | Đạt (tag + tài liệu); Release GitHub phụ thuộc quyền/`gh` — xem `docs/release/v1.0.0.md` |
+
+## Đánh giá ngắn
+- Yêu cầu nào đạt / chưa đạt: lõi Phase 4 (v1.3, bench, soak, leaderboard, cảnh báo, phụ đề) **đạt** và có test tự động. Ảnh bằng chứng chế độ thường của cảnh báo chưa chốt nội dung (ghi trung thực ở AC-P4-06).
+- Điều cần chỉnh cho phase sau: chụp lại ảnh cảnh báo ở chế độ thường ổn định hơn (cửa sổ cảnh báo ngắn), và tự động hoá việc tạo Release trên CI.

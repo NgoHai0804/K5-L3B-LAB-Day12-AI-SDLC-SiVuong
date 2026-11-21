@@ -4,14 +4,29 @@ Game 2D quản lý quán ăn miền Tây. **Sáng** Út Sen lặn sông Chín Kh
 
 ## Chạy (macOS / Linux, chỉ cần Python 3.10+, không cài thêm gì)
 
+> Windows: dùng `python` thay cho `python3` (trên máy này `python3` cũng trỏ về Python 3.12).
+
 ```bash
 git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-python3 -m chonoi.play                                   # chiến dịch 10 ngày, mở http://127.0.0.1:8000/
+python3 -m chonoi.play                                   # chiến dịch 5 Ngày, mở http://127.0.0.1:8000/
 PYTHONPATH=tests:. python3 -m unittest discover -s tests -v   # toàn bộ test (1 lệnh)
 ```
 
 Chơi riêng từng buổi: `python3 -m chonoi.live --mode gather --inventory-out kho.json` rồi `python3 -m chonoi.live --mode quan --inventory kho.json`.
-Headless (Test Contract v1.0): `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl [--scenario ..] [--inputs ..] [--inventory ..] [--inventory-out ..]`.
+Headless (Test Contract): `python3 -m chonoi.headless --mode gather|quan|day --seed 1 --ticks 600 --out out.jsonl [--days 1..5] [--scenario ..] [--inputs ..] [--inventory ..] [--inventory-out ..]`.
+
+### Phase 4 — bench, soak, bảng xếp hạng (Test Contract v1.3)
+
+```bash
+python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json     # bench có render (5 trường)
+python3 -m chonoi.soak  --seed 7  --days 10   --out soak.json        # soak headless 10 Ngày (bot tất định)
+python3 -m chonoi.headless --mode day --days 5 --seed 42 --ticks 200000 \
+    --leaderboard leaderboard.json --player-name "Út Sen" --out out.jsonl   # ghi bảng xếp hạng khi đủ 5 Ngày chuẩn
+python3 -m chonoi.play --export-leaderboard bang-xep-hang.json       # xuất bảng đã sắp ra file
+```
+
+- `bench_cmd` / `soak_cmd` khai ở `game.contract.json`; đầu ra `bench.json` có `avg_fps, p1_low_fps, frames, measured_s, load_ms`; `soak.json` có `days, days_completed, crashes, results, duration_s` (đạt khi `days_completed == days` và `crashes == 0`).
+- Bảng xếp hạng là **file JSON riêng** (`{"entries":[{name,score,days_completed,seed}]}`), sắp điểm giảm dần, giữ tối đa 10 mục, ghi **một** mục cho mỗi lượt day đủ 5 Ngày chuẩn (không scenario). Thiếu một trong `--leaderboard`/`--player-name` hoặc dùng với mode ≠ `day` → mã thoát 2.
 
 ## Điều khiển
 
@@ -23,7 +38,8 @@ Headless (Test Contract v1.0): `python3 -m chonoi.headless --mode gather|quan --
 | Enter / E (lúc hết buổi) | sang buổi tối | ra chợ sắm đồ |
 | 1–6 (ở chợ) | mua nâng cấp | |
 | N (màn tiêu đề) | chơi mới từ ngày 1 | |
-| R / M | chơi lại buổi · tắt/bật tiếng | |
+| R / M | chơi lại buổi · tắt/bật tiếng (phụ đề vẫn hiện) | |
+| H | bật/tắt **tương phản cao** | bật/tắt **tương phản cao** |
 
 ## Luật chính và cách tính điểm
 
@@ -41,14 +57,15 @@ Hợp đồng file kho và danh sách sự kiện: [`docs/contracts/README.md`](
 
 ## Sáng tạo của nhóm
 
-Lõi chạy theo **Test Contract v1.2** (Phase 2 số chuẩn + vòng Ngày, Phase 3 kho cá thể và độ tươi). Mọi phần dưới đây chỉ nằm ở cửa sổ chơi (`chonoi/play.py`, `chonoi/web/index.html`, `extras` của `GatherSim`). Headless **không** bật chúng, nên tick, sự kiện, tiền, uy tín và snapshot vẫn đúng contract.
+Lõi chạy theo **Test Contract v1.3** (Phase 2 số chuẩn + vòng Ngày, Phase 3 kho cá thể và độ tươi, Phase 4 bench/soak/bảng xếp hạng). Mọi phần dưới đây chỉ nằm ở cửa sổ chơi (`chonoi/play.py`, `chonoi/web/index.html`, `extras` của `GatherSim`). Headless **không** bật chúng, nên tick, sự kiện, tiền, uy tín và snapshot vẫn đúng contract.
 
 - **Mùa nước nổi 5 Ngày** (`python3 -m chonoi.play`): chạy đúng `DaySim` của `--mode day`. Menu (Chơi / Thoát) → DayIntro (Má Tư đọc món và nguyên liệu, tự chuyển sau 4 s) → sáng lặn → EveningIntro (nhập kho, món nấu được) → tối mở quán → DayResult → Shop → Ngày kế → Tổng kết (tổng tiền, điểm, uy tín, món bán chạy). Esc/P tạm dừng bằng `pause` của sim (dừng mọi timer, kể cả Shop). Mỗi Ngày có tên và thoại riêng, mục tiêu 1500k tiền thuốc cho Má Tư. Tiến trình lưu ở ranh giới Ngày (`saves/campaign.json`).
 - **Sprint** (giữ Shift khi lặn): bơi ×1.5, oxy dưới nước tốn ×1.5, tiêu thanh **Sức** (đủ khoảng 3 s); hết Sức thì phải hồi tới 30% mới sprint lại. Chỉ bật qua `LiveGame.EXTRAS`; `tests/test_play.py` kiểm headless không có sprint.
 - **Đồ nghề ở Shop** (ngoài oxygen/hp lõi): giỏ lưới, chân vịt, vợt, bếp lò, ghế đẩu. Chỉ sửa một bản sao tuning từ Ngày kế và vẫn qua `validate_tuning`.
 - **Đồ họa vẽ bằng code ở độ phân giải gốc** (không dùng asset ngoài, không còn lớp pixel): sông nước xanh trong có tia nắng, gợn sáng, hạt lơ lửng, đáy cát/đá/san hô/rong; cá linh, cá lóc, cá kèo có vây, vảy, mắt; Cá Sấu Năm Chèo có vảy lưng, hàm há khi đuổi; Út Sen có bình oxy, kính lặn, ống thở, chân vịt. Buổi tối là **quán dạng quầy bar**: tường gỗ, cửa sổ nhìn ra sông đêm, kệ nguyên liệu (thanh độ tươi), mái lá dừa, đèn lồng, 2 bếp đất, 4 quầy có ghế đẩu, khách ngồi quầy với bong bóng gọi món, phiếu order treo trên thanh ray.
 - **HUD**: Máu, Oxy (đỏ nhấp nháy dưới 25%), Sức, đồng hồ (đỏ khi còn ≤ 30 s), độ sâu theo vùng, giỏ theo ô có thanh độ tươi và nhãn "ươn", danh sách Má Tư dặn (đã lấy/cần), "Thủy quái!" + viền tím, "Hết hơi!". Quán: phiếu order có kiên nhẫn, kho theo loại (khả dụng / giữ / ươn / độ tươi tốt nhất), bếp, món trên tay và giá đã chốt, thực đơn hôm nay. Chữ ≥ 16–18 px.
-- **Bằng chứng lõi vẫn đúng:** `tests/test_rules_p1.py`, `tests/test_smoke_p1.py` (regression, đã chuyển sang kho cá thể), `tests/test_rules_p2p3.py` (độ tươi, giữ lại khi ươn, giá theo tươi, cá bơi/sinh, Cá Sấu, Shop, pause, vòng Ngày, tất định) chạy hộp đen qua headless; `tests/test_play.py` chạy trọn 5 Ngày, Shop, lưu/tải, pause, sprint.
+- **Trợ năng & phụ đề (Phase 4):** ba cảnh báo người chơi — sáng "THỦY QUÁI GẦN ĐÂY!", "SẮP HẾT OXY"; tối "KHÁCH SẮP GIẬN!" (khách còn < 25% kiên nhẫn); phím **H** bật **chế độ tương phản cao** (banner đen/viền trắng, giảm hiệu ứng nhấp nháy, có huy hiệu "TƯƠNG PHẢN CAO"); **phụ đề SFX** (`say`/`drawCaptions`) hiện chữ cho mọi tiếng kể cả khi tắt tiếng (M).
+- **Bằng chứng lõi vẫn đúng:** `tests/test_rules_p1.py`, `tests/test_smoke_p1.py` (regression, đã chuyển sang kho cá thể), `tests/test_rules_p2p3.py` (độ tươi, giữ lại khi ươn, giá theo tươi, cá bơi/sinh, Cá Sấu, Shop, pause, vòng Ngày, tất định) chạy hộp đen qua headless; `tests/test_play.py` chạy trọn 5 Ngày, Shop, lưu/tải, pause, sprint; `tests/test_phase4.py` kiểm v1.3, bench, soak, bảng xếp hạng và dấu vết trợ năng trong `index.html`.
 
 ---
 

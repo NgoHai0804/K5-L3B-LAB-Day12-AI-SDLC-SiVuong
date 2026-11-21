@@ -4,6 +4,7 @@ Mã thoát: 0 bình thường; 2 tham số/đầu vào sai (kiểm TRƯỚC khi 
 """
 
 import argparse
+import math
 import os
 import sys
 
@@ -11,8 +12,11 @@ from .contract import load_contract
 from .errors import BadInput
 from .inputs import load_frames
 from .inventory import read_inventory
+from .leaderboard import record, validate_name
 from .runner import run
 from .scenario import load_scenario
+
+FULL_DAYS = 5
 
 
 class _Parser(argparse.ArgumentParser):
@@ -43,8 +47,16 @@ def main(argv=None) -> int:
     p.add_argument("--inventory-out", dest="inventory_out")
     p.add_argument("--snapshot-every", dest="snapshot_every", type=_int("snapshot-every"), default=10)
     p.add_argument("--days", type=_int("days"))
+    p.add_argument("--leaderboard", help="mode day: lưu bảng xếp hạng cục bộ khi xong đủ 5 Ngày chuẩn")
+    p.add_argument("--player-name", dest="player_name", help="mode day: tên người chơi (Unicode khác rỗng)")
     a = p.parse_args(argv)
     try:
+        if (a.leaderboard is None) != (a.player_name is None):
+            raise BadInput("--leaderboard và --player-name phải đi cùng nhau")
+        if a.leaderboard is not None:
+            if a.mode != "day":
+                raise BadInput("--leaderboard/--player-name chỉ dùng với --mode day")
+            validate_name(a.player_name)
         if a.days is not None and a.mode != "day":
             raise BadInput("--days chỉ dùng với --mode day")
         days = 1 if a.days is None else a.days
@@ -74,8 +86,13 @@ def main(argv=None) -> int:
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2
     try:
-        run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-            inventory=inventory, inventory_out=a.inventory_out, days=days)
+        sim = run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+                  inventory=inventory, inventory_out=a.inventory_out, days=days)
+        if (a.leaderboard is not None and a.mode == "day" and a.scenario is None
+                and days == FULL_DAYS and getattr(sim, "reason", None) == "days_complete"):
+            mult = contract["tuning"]["score"]["reputation_multiplier"]
+            score = int(sim.earned) + int(mult) * math.floor(sim.reputation)
+            record(a.leaderboard, a.player_name, score, int(sim.days_completed), a.seed)
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

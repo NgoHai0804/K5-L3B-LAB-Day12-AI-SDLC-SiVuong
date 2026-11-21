@@ -1,4 +1,4 @@
-"""Đọc game.contract.json và kiểm tuning theo Test Contract v1.2 (Ticket-02 số chuẩn + Ticket-03 độ tươi)."""
+"""Đọc game.contract.json và kiểm tuning theo Test Contract v1.3 (Ticket-04: v1.2 gameplay + bench_cmd/soak_cmd)."""
 
 import json
 import os
@@ -15,7 +15,7 @@ FIXED_RECIPES = {
 }
 FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
-SUPPORTED_VERSIONS = ("1.2",)
+SUPPORTED_VERSIONS = ("1.3", "1.2")  # v1.3 = v1.2 gameplay/tuning/kho/JSONL + bench_cmd/soak_cmd
 
 DEFAULT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game.contract.json")
 
