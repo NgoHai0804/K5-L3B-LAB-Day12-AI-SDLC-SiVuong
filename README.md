@@ -30,9 +30,10 @@ Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/
 ## Sáng tạo của nhóm
 
 - **MR-1 — Cảm hứng *Dave the Diver* phiên bản Chợ Nổi Miền Tây** (Nguyễn Thanh Tùng — Content Lead):
-  - **Sổ tay Tầng nước & Thực đơn Nhà bè** (`chonoi/content/dave_theme.py`, `docs/content/dave-the-diver-concept.md`): Phân tầng độ sâu sông Chín Khúc cho 4 nguyên liệu cốt lõi (`0m`, `5–10m`, `10–16m`), mô tả thực đơn kiểu *Bancho Sushi* cho 3 món đặc sản và hệ thống lời thoại giọng Nam Bộ phản ứng theo từng sự kiện bếp/bàn.
-  - **Chợ Nổi Review (`ServiceReviewTracker`)**: Lấy cảm hứng từ app *Cooksta* trong *Dave the Diver*, chấm chuỗi phục vụ có boa (Tip Streak) và xếp hạng 1★–5★ cho nhà bè chỉ bằng cách đọc dòng event.
-  - **Bằng chứng lõi vẫn đúng**: Toàn bộ `chonoi/content/` tách biệt khỏi `chonoi/sim/*` và tắt mặc định ở chế độ headless (`enabled=False`). Kết quả chạy `python -m unittest tests.test_quan_lat4 -v` đạt 11/11 test pass, bao gồm kiểm tra JSONL giống từng byte qua `python -m chonoi.headless` (xem `docs/proof/phase-1/lat4-quan.md`).
+  - **Sổ tay Tầng nước, Thủy quái & Thực đơn 6 món** (`chonoi/content/dave_theme.py`, `docs/content/dave-the-diver-concept.md`): Phân tầng độ sâu sông Chín Khúc cho đủ 6 nguyên liệu Phase 2 (`bong_dien_dien`, `bong_sung`, `keo_neo`, `ca_linh`, `ca_loc`, `ca_keo`), sổ tay 3 sinh vật đặc biệt (`ca_sau`, `ran`, `ca_ho`), thực đơn 6 món kiểu *Bancho Sushi*, lời dặn 5 Ngày (D1–D5), mô tả Shop/Chợ Chú Sáu và hệ thống lời thoại giọng Nam Bộ phản ứng theo từng sự kiện.
+  - **Chợ Nổi Review (`ServiceReviewTracker`)**: Lấy cảm hứng từ app *Cooksta* trong *Dave the Diver*, chấm chuỗi phục vụ có boa (Tip Streak), ảnh Cá Hô (`photo`), trừ điểm cháy món (`dish_burnt`) và xếp hạng 1★–5★ chỉ bằng cách đọc dòng event.
+  - **Mở rộng Cháy món (`burn`)**: Hỗ trợ `burn_s` trong `chonoi/sim/quan.py` (tắt khi `burn_s: null` trong lõi, hoạt động đúng chuẩn `ready_ticks > 1200` khi bật mở rộng).
+  - **Bằng chứng lõi vẫn đúng**: Toàn bộ `chonoi/content/` tách biệt khỏi `chonoi/sim/*` và tắt mặc định ở chế độ headless (`enabled=False`). Kết quả chạy `python -m unittest tests.test_quan_lat4 tests.test_quan_p2 tests.test_python_starter_units tests.test_team_check -v` đạt 28/28 test pass (xem `docs/proof/phase-2/quan-p2.md` và `docs/verification/phase-2.md`).
 
 ## Lịch 3 giờ
 
