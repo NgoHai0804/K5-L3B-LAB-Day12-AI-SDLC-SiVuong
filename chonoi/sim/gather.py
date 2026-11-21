@@ -268,12 +268,12 @@ class GatherSim:
         """Thêm nguyên liệu vào giỏ nếu đủ chỗ (LIFO). Đầy -> phát `hold_full`, trả False.
 
         Seam cho lát 2: hái dùng action="gather" (node_id), bắt cá dùng action="catch" (fish_id).
-        `hold_full` phải có khoá `kind` theo hợp đồng đóng băng §4; các khoá còn lại là chẩn đoán thêm.
+        `hold_full` mang đúng 4 khoá theo hợp đồng đóng băng §4: action, node_id|fish_id, required, free.
         """
         free = self._hold_free()
         if len(amounts) > free:
             key = "node_id" if action == "gather" else "fish_id"
-            events.append(("hold_full", {"kind": amounts[0], "action": action, key: item_id,
+            events.append(("hold_full", {"action": action, key: item_id,
                                          "required": len(amounts), "free": free}))
             return False
         self.hold.extend(amounts)

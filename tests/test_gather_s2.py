@@ -1,7 +1,7 @@
 """Unit test luật Lát 2 (Đức) — hái nút, bắt cá, cập bến, hợp đồng kho (AC-P1-05..08).
 
 Hộp đen qua `headless_cmd`. Giỏ đi qua seam `_try_hold` của lát 1, nên `hold_full`
-ở đây kiểm cả khoá `kind` (hợp đồng đóng băng §4).
+ở đây kiểm đúng 4 khoá của hợp đồng đóng băng §4: action / node_id|fish_id / required / free.
 Chạy: python -m unittest discover -s tests -v
 """
 
@@ -68,15 +68,15 @@ class TestHaiNut(unittest.TestCase):
             rows = run_gather(w, sc, [{"tick": 1, "interact": True}])
             self.assertEqual(events(rows, "gather"), [])
 
-    def test_06_gio_day_thi_hold_full_co_kind_va_nut_con_ready(self):
+    def test_06_gio_day_thi_hold_full_va_nut_con_ready(self):
         sc = dict(self.SC, hold=["ca_loc"] * 12)  # hold_capacity = 12
         with Workdir() as w:
             rows = run_gather(w, sc, [{"tick": 1, "interact": True}])
             ev = events(rows, "hold_full")
             self.assertEqual(len(ev), 1)
-            # hợp đồng §4: hold_full phải có `kind`; các khoá chẩn đoán của lát 1 giữ nguyên.
-            self.assertEqual(ev[0]["data"]["kind"], "bong_dien_dien")
-            self.assertEqual(ev[0]["data"]["node_id"], "N1")
+            # hợp đồng §4: đúng 4 khoá action / node_id|fish_id / required / free, KHÔNG có `kind`.
+            self.assertEqual(ev[0]["data"], {"action": "gather", "node_id": "N1",
+                                             "required": 1, "free": 0})
             self.assertEqual(events(rows, "gather"), [])
             self.assertTrue(snapshots(rows)[-1]["nodes"][0]["ready"])
 
@@ -160,10 +160,8 @@ class TestBatCa(unittest.TestCase):
             rows = run_gather(w, sc, [{"tick": 1, "catch": True}])
             ev = events(rows, "hold_full")
             self.assertEqual(len(ev), 1)
-            self.assertEqual(ev[0]["data"]["kind"], "ca_linh")
-            self.assertEqual(ev[0]["data"]["fish_id"], "F1")
-            self.assertEqual(ev[0]["data"]["required"], 3)
-            self.assertEqual(ev[0]["data"]["free"], 2)
+            self.assertEqual(ev[0]["data"], {"action": "catch", "fish_id": "F1",
+                                             "required": 3, "free": 2})
             self.assertEqual(events(rows, "fish_caught"), [])
             self.assertEqual(len(snapshots(rows)[-1]["fish"]), 1)
 
