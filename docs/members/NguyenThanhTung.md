@@ -1,4 +1,4 @@
-# wewewewe07 — phản tư cá nhân (≤ 200 từ)
+# Nguyễn Thanh Tùng (wewewewe07)[https://github.com/wewewewe07] — phản tư cá nhân (≤ 200 từ)
 
 - **Tôi đã làm**:
   - Phase 1 (`778d437`, PR #4 merge `6b7239e`): triển khai luật Lát 4 `chonoi/sim/quan.py` (bếp nấu, bưng, phục vụ, boa, thu tiền, đóng ca), bộ test `tests/test_quan_lat4.py`, nội dung MR-1 cảm hứng *Dave the Diver* (`chonoi/content/dave_theme.py`), `CREDITS.md` và `README.md`.
