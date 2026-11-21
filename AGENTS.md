@@ -26,4 +26,7 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- `inventory-handoff-smoke`: dùng khi kiểm tra bàn giao `gather → kho.json → quan`; chạy script độc lập, không sửa contract hay fixture khóa.
+  - Lệnh: `python3 .agents/skills/inventory-handoff-smoke/scripts/run_smoke.py`
+- `verify-phase-change`: dùng trước commit/push hoặc khi thu bằng chứng cho một phase; đọc diff, chạy toàn bộ test và ghi kết quả trung thực vào `docs/proof/`.
+  - Lệnh test chuẩn: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
