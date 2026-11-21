@@ -133,6 +133,8 @@ class HoldSeam(unittest.TestCase):
         sim = self._sim(["ca_loc"] * cap)
         ev = []
         self.assertFalse(sim._try_hold("gather", "N3", ["bong_sung"], ev))
+        # Hợp đồng §4: hold_full mang ĐÚNG 4 khoá action / node_id|fish_id / required / free.
+        # Không có `kind` (xem docs/clarify.md #5 — kết luận cũ đã bị thu hồi).
         self.assertEqual(ev, [("hold_full", {"action": "gather", "node_id": "N3",
                                              "required": 1, "free": 0})])
 

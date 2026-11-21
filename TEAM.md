@@ -25,7 +25,7 @@ flowchart LR
 | Thành viên | GitHub handle | Team | Lát (Phase 1) | Module chính | Vai quy trình |
 |---|---|---|---|---|---|
 | Ngô Ngọc Hải | NgoHai0804 | Sáng | **Lát 1** | `sim/gather` | **Integrator** (giữ `docs/contracts/`, gắn tag) · Team lead Sáng |
-| Trần Minh Đức | | Sáng | **Lát 2** | `sim/gather` | **PO** (hỏi Anh Năm/giảng viên, giữ `docs/clarify.md`) |
+| Trần Minh Đức | tmduc23 | Sáng | **Lát 2** | `sim/gather` | **PO** (hỏi Anh Năm/giảng viên, giữ `docs/clarify.md`) |
 | Trần Thị Nhài | | Sáng | HUD/QA + hỗ trợ | `client/ui` (gather) | **Scrum/Release** (mốc bàn giao, standup, release) |
 | Bùi Đình Quý Anh (2A202603969) | | Tối | **Lát 3** | `sim/quan` | **QA lead** (bộ test + ma trận truy vết) · Team lead Tối |
 | Nguyễn Thanh Tùng (03957) | | Tối | **Lát 4** | `sim/quan` + `content` | **Content lead** (sáng tạo, `CREDITS.md`) |
@@ -330,3 +330,141 @@ Chỉ sau khi **lõi đúng**; phần tự thêm **tắt ở headless** hoặc g
 - [ ] **Nhài** — HUD sáng + QA + smoke/regression (`AC-P2-11,13`) + mốc.
 - [ ] Bàn giao: smoke tích hợp ra đúng `stock` tick 0; `day --days N` chạy.
 - [ ] Tag `phase-2` < 1:55 + `docs/verification/phase-2.md` + `docs/proof/phase-2/`.
+
+---
+
+# Phase 3 — Change Request “Mùa Nước Nổi” (hạn tag `phase-3` lúc 2:30)
+
+> Ticket: TICKET-03 · Contract **v1.2** · 35 phút (1:55–2:30). Tháng Tám âm lịch, nước lũ về, cá linh nhiều; trời nóng làm
+> nguyên liệu mau ươn. **Đây là change request**: luật đổi so với bản đang chạy được đánh dấu **[THAY THẾ]**.
+> Mục tiêu lõi: **độ tươi từng nguyên liệu** từ lúc Út Sen lấy được tới lúc vào bếp, và **kho đếm → kho cá thể**.
+> Quy ước AC: `AC-P3-xx`. Đọc số từ `game.contract.json` v1.2, **không hard-code**; ngẫu nhiên chỉ qua `Streams(seed)`.
+
+## Lõi — Độ tươi (ticket §1)
+
+### [THAY THẾ] Kho đếm theo loại → **kho cá thể**
+```json
+{"items":[{"id":"I1","kind":"ca_linh","fresh":100},{"id":"I2","kind":"ca_loc","fresh":97.5}]}
+```
+- Đúng khóa gốc `items`, giá trị là **mảng cá thể** `{id,kind,fresh}`. Kho rỗng `{"items":[]}`.
+- `id` chuỗi **duy nhất, khác rỗng**; `kind` thuộc danh mục nguyên liệu; `fresh` hữu hạn trong `[0,100]`.
+- Cấp `I1,I2,…` theo **thứ tự vào giỏ**, **tiếp tục tăng xuyên pha và Ngày**, kể cả khi cá thể trước đã dùng/bỏ. **LIFO khi mất hàng vẫn theo thứ tự vào giỏ.**
+- Bên đọc chọn schema **theo `contract_version`**. v1.2 trả **mã 2** cho file kho đếm hoặc sai schema, kind lạ, id trùng, fresh ngoài miền. Kho quán nhận **nguyên số lượng, id và độ tươi, kể cả hàng ươn**. Sức chứa giỏ chỉ áp lên giỏ.
+- `gather --inventory-out` ghi **đúng một lần** khi có `gather_end`; file tạm cùng thư mục rồi thay thế nguyên tử; **ngất ghi kho rỗng**; chạm `--ticks` trước `gather_end` ⇒ **giữ nguyên đường dẫn đích**. Xuất theo id, đủ độ chính xác để đọc lại giữ giá trị và nhánh ở ngưỡng 30. `gather_end.data.inventory` cùng schema.
+- Trong `day`: bàn giao **trong cùng tick chuyển pha**, hàng **không hao thêm**, ca quán chạy từ bước sau. Nếu có Chợ Chú Sáu, hàng mua nhập riêng kho quán Ngày kế với `fresh:100`, tách khỏi `gather_end.inventory` và **dùng id mới**. Hàng thô ở Shop/chờ nhập **không hao tươi**. Khi bán, lấy cá thể **chưa ươn tươi nhất** của loại, hòa theo id.
+
+### Độ tươi, giữ chỗ và giá
+| Quy tắc | Cách xử lý |
+|---|---|
+| **Hàng mới** | `fresh = 100` lúc bắt/hái; bắt đầu hao **từ bước sau**. |
+| **Hao tươi** | Giỏ **−0.5/s**, kho quán **−0.25/s** kể cả hàng **đang giữ chỗ**. 60 tick/s, kẹp đáy 0. **Pause dừng hao tươi.** Món chín không hao. |
+| **Ươn** | `fresh < 30`, vẫn chiếm ô, **không dùng nấu**. Phát `spoiled` **đúng một lần** khi đi từ `≥30` xuống `<30`; nhiều cá thể cùng vượt ⇒ phát **theo id**. So ngưỡng **trước** làm tròn. |
+| **[THAY THẾ] Giữ theo lượng → giữ theo id** | Mỗi loại trong công thức lấy các cá thể **khả dụng tươi nhất, hòa theo id**. Nếu phần giữ có cá thể vừa ươn ⇒ **nhả toàn bộ phần giữ của đơn** và **thử giữ lại đúng một lần**. Xử lý các đơn bị ảnh hưởng theo `order_tick` rồi id bàn. Không đủ ⇒ đơn thường chuyển `unfulfillable`, khách chờ tới hạn. |
+| **[THAY THẾ] Giá niêm yết → giá theo tươi** | Khi bắt đầu nấu, tiêu **đúng các id đang giữ** và chốt `base_price = floor(giá niêm yết × trung bình fresh của các cá thể dùng / 100)`. Nếu đủ điều kiện boa, áp `floor(tiền món × 0.2)` **trên giá đã chốt**. Điểm vẫn `earned + 100 × floor(reputation)`. |
+| **HUD** | Cho người chơi đọc được **độ tươi** hoặc **nhận ra hàng ươn** bằng số, thanh, nhãn hoặc biểu tượng. |
+
+> Dùng phép tính **đủ chính xác ở ngưỡng 30 và phép `floor`**. Gợi ý: 240 đơn vị/điểm tươi với fixture biểu diễn chính xác, **−2 đơn vị/tick** ở gather, **−1 đơn vị/tick** ở quán.
+
+### Thứ tự trong tick
+- **Gather**: đồng hồ, cooldown, hồi nút và **độ tươi hàng có sẵn ở đầu bước** → lịch dòng lũ nếu bật → bơi, oxy và ngạt → Lao nếu có, rồi **thủy quái/hit** → **bến trước hái** → **bắt cá rồi ảnh** nếu có → **xét hết giờ**, chỉ còn giờ mới cập nhật cá và sinh thêm. Rơi hàng theo **LIFO**. Khi ngất, bỏ toàn bộ phần còn lại theo LIFO rồi phát `faint`, `gather_end(fainted)`.
+- **Quán**: đồng hồ và timer → **hao tươi kho thô, phát hết `spoiled` theo id** rồi mới xử lý **giữ chỗ bị ươn** → xét món chín/cháy nếu có theo id bếp → di chuyển và **tối đa một tương tác** → thanh toán, kiên nhẫn/đóng ca → còn giờ mới xử lý **đặt trước** rồi tới **khách thường**. Giao đúng tick kiên nhẫn chạm 0 vẫn hợp lệ; giao đúng tick kết thúc ca **được trả ngay**.
+
+## Contract v1.2 (ticket §1)
+- **[THAY THẾ]** `contract_version:"1.2"`. Thêm **`freshness {initial, gather_decay_per_s, quan_decay_per_s, spoiled_below}`** lần lượt **100, 0.5, 0.25, 30**.
+- **Scenario**: `gather.hold` và `quan.stock` là **mảng cá thể**. Trong `day`, Ngày đầu **giữ nguyên id** trong mẫu `gather.hold`; các Ngày kế **cấp id mới** theo thứ tự mảng với kind/fresh ban đầu. `customers[].reserved` là **mảng id cá thể**. Id vật lý **duy nhất giữa các nơi chứa**; phần giữ phải trỏ tới **cá thể chưa ươn trong kho**, đủ công thức, **không dùng chung** với đơn khác. Bỏ `reserved` cho đơn `reserved` ⇒ cấp theo `order_tick` rồi id bàn, **tươi nhất rồi id nhỏ**. Sai/mâu thuẫn ⇒ **mã 2**. Payload món giữ cấu trúc, `base_price` là giá **đã chốt theo fresh**.
+- **JSONL**: snapshot `hold`, `stock` (quán và Shop) và `customers[].reserved` theo schema trên. `cook_started.data.items` là **mảng cá thể sắp theo kind rồi id**. `lost` trong `monster_hit`/`faint` là **mảng cá thể theo thứ tự bỏ LIFO**. Event mới **`spoiled`** có `item_id,kind,location` (**hold/stock**). **Dung sai quan sát độ tươi ±0.01**; dùng trạng thái/event để kiểm nhánh ở ngưỡng; **tick của event biên phải chính xác**.
+
+**Fixture kiểm ngưỡng** (chạy gather một bước không input — cá thể bắt đầu đúng `fresh 30` nên ươn ở bước đầu):
+```json
+{"gather":{"hold":[{"id":"I1","kind":"ca_linh","fresh":30}],"random_fish":false,"monsters":[]}}
+```
+```json
+{"type":"event","tick":1,"phase":"gather","name":"spoiled","data":{"item_id":"I1","kind":"ca_linh","location":"hold"}}
+```
+> Smoke bàn giao **file**: dùng mẫu trên với **`fresh:100`** và **`interact:true` ở frame 0** để cập bến; mở `quan --inventory` file vừa ghi với `--ticks 0`; so **chính xác** id, kind, độ tươi của snapshot quán với file sau lần hao ở bước gather.
+
+## Mở rộng Phase 3 (nhóm 6 người cần ≥ 2 mục · ticket §2)
+
+Chọn **sau khi độ tươi và bàn giao kho đã chạy ổn**; khai mã trong `extensions`, ghi test/bằng chứng trong README. Phần tự thêm **tắt ở headless** hoặc giữ nguyên kết quả theo Test Contract.
+
+### `AC-P3-EX-01` Dòng nước lũ (current)
+- **Lịch**: `t = 1800·k` (k≥1), báo trước ở `t−120` bằng chữ + biểu tượng + âm thanh. Bắt đầu **trước di chuyển** ở `t`, kéo dài **480 tick** (`t → t+479`).
+- **Hướng & lực**: chọn đều **+x/−x** theo seed khi bắt đầu. Cộng **1.5 m/s** vào người chơi nếu **d đầu bước ≥ 10**, rồi chặn mép. Đàn cá và thủy quái **giữ chuyển động riêng**; lực dòng **không tích lũy vào `player.vel`**.
+- **Kết thúc**: phát `current_end(elapsed)` **trước di chuyển** ở `t+480`. Nếu ca kết thúc trước, phát `current_end(phase_end)` **trước `faint` nếu có và trước `gather_end`**. Bước bắt đầu dòng trùng bước cuối ca **vẫn có lực**. CLI chỉ cắt mô phỏng tại trạng thái hiện có.
+- **Manifest**: thêm `gather.current {interval_ticks, duration_ticks, warning_ticks, min_depth, speed}`. Scenario nhận `gather.random_current:false` (tắt lịch) hoặc `current_direction:-1/1` (khóa hướng). Snapshot gather có `current:null` hoặc `{direction,ticks_left}`, **đếm cả tick hoạt động vừa chụp**.
+- **Event**: `current_warning {starts_at_phase_tick}` · `current_start {direction,duration_ticks}` · `current_end {direction,reason(elapsed/phase_end)}`.
+
+### `AC-P3-EX-02` Khách đặt trước (reservations)
+- Mỗi Ngày công bố **2 đơn R1,R2** **sau `phase_start(gather)` theo id**; HUD sáng hiện hai đơn. Chọn **hai bàn khác nhau**, món **trong kế hoạch**, tick đến theo seed trong `[1800,10799]` (có thể cùng tick). Quán độc lập công bố lúc dựng pha và dùng **menu đầy đủ**.
+- Trạng thái **scheduled → holding → waiting → served** hoặc **failed**. Giữ bàn từ `max(0, arrival_tick − 1800)`; nếu giữ từ tick 0 thì thể hiện ngay trong snapshot dựng quán. Khách thường đang ngồi có thể ở lại; **khách mới không ngồi bàn giữ**. Khi còn giờ, cập nhật giữ bàn và **xử lý khách đặt theo id trước lượt khách thường**.
+- Đến giờ mà bàn còn khách ⇒ fail `occupied`; bàn trống nhưng thiếu kho ⇒ fail `stock`. Đến thành công **giữ nguyên liệu ngay**, phát `reservation_arrived` rồi `customer_arrived`; kiên nhẫn 60 s. **Giá cuối `floor(giá đã chốt theo fresh × 1.5)`**, rồi mới tính boa. Giao thành công phát `served` rồi `reservation_served`.
+- Lỡ đơn do stock/occupied/burnt/patience/closing ⇒ **nhả hàng/bàn, hủy món, uy tín −1 đúng một lần**. `reservation_failed` **thay nhánh rời do thất bại**, không cộng phạt khách thường. Phần giữ vừa ươn & giữ lại không đủ ⇒ fail `stock`. Món cháy ⇒ phát `dish_burnt` với `order_status:"failed"` **trước** `reservation_failed`. Đóng ca ⇒ fail các đơn chưa phục vụ/chưa fail **theo id đặt**. `served`/`failed` là **trạng thái cuối**.
+- **Manifest**: `reservations {count, table_hold_s, price_multiplier, failed_reputation_delta}` lần lượt **2, 30, 1.5, −1**. Scenario nhận `quan.reservations[] {id,table_id,dish_id,arrival_tick}`: mảng tường minh **thay toàn bộ** danh sách, **tối đa hai đơn**, bàn khác nhau, tick đến **nguyên dương < thời lượng ca chuẩn** (có thể sau giờ đóng nếu fixture rút ngắn ca). `quan.random_reservations:false` tắt tự sinh. Snapshot gather trong day và quán có `reservations[]` kèm `state`; snapshot quán thêm `customers[].reservation_id` và `tables[].reservation_id` (**null** khi không có).
+- **Event**: `reservation_announced {reservation_id,table_id,dish_id,arrival_tick}` · `reservation_arrived {reservation_id,order_id}` · `reservation_served {reservation_id,order_id,base_price}` (đã nhân hệ số + floor) · `reservation_failed {reservation_id,reason,reputation}`.
+
+## Phân tích tác động & thứ tự tích hợp (ticket §3)
+
+| Module | File cần đổi | Test bị ảnh hưởng | Người phụ trách |
+|---|---|---|---|
+| Adapter & schema kho | `chonoi/inventory.py`, `chonoi/jsonl.py`, `chonoi/contract.py`, `chonoi/scenario.py` | `tests/test_smoke_p1.py` (schema kho), test kho/quán | **Sơn** (chủ) + **Hải** (Integrator) |
+| Lặn (`gather`) | `chonoi/sim/gather.py` | `tests/test_gather_*.py` | **Đức** + Hải |
+| Quán (`quan`) | `chonoi/sim/quan.py` | `tests/test_quan_*.py` | **Quý Anh** |
+| `day` | `chonoi/sim/day.py` | test `day` | **Tùng** |
+| HUD | `client/ui` (gather + quan) | proof HUD + test | **Nhài** + Sơn |
+| QA / bằng chứng | `docs/verification/phase-3.md`, `docs/proof/phase-3/` | — | **Quý Anh** |
+| Manifest | `game.contract.json` (v1.2) | toàn bộ suite | Sơn |
+
+> **Thứ tự tích hợp**: (1) **schema/adapter + test migration** trước; (2) **Lặn, Quán, HUD song song** theo schema đã chốt; (3) có thể **hỗ trợ hai phiên bản nội bộ** trong lúc chuyển và **bật v1.2 khi cả hai đầu bàn giao sẵn sàng**. Khi chạy v1.2, **file kho đếm trả mã 2**. Ghi quyết định đổi schema + thứ tự này vào `docs/adr/0002-kho-ca-the-do-tuoi.md` để main vẫn chạy được.
+
+## Chia lát Phase 3 (AC-P3-xx)
+
+| Lát | Nội dung | Người | AC |
+|---|---|---|---|
+| Schema/adapter | Kho cá thể + chọn schema theo version + migration + cấp id | Sơn, Hải | `AC-P3-01`, `AC-P3-06`, `AC-P3-07` |
+| Lặn | Hao tươi giỏ, `spoiled` theo id, LIFO, bàn giao | Đức, Hải | `AC-P3-02` |
+| Quán | Hao tươi kho, giữ theo id (nhả + thử lại khi ươn), giá theo tươi | Quý Anh, Tùng | `AC-P3-03`, `AC-P3-04` |
+| HUD | Độ tươi/ươn (sáng + tối) + `day` tích hợp | Nhài, Sơn, Tùng | `AC-P3-05` |
+| Mở rộng | Dòng nước lũ (current) · Khách đặt trước (reservations) | Tùng · Quý Anh | `AC-P3-EX-01`, `AC-P3-EX-02` |
+
+- `AC-P3-01` kho cá thể + lựa schema theo `contract_version`, mã 2 cho kho đếm ở v1.2 · `AC-P3-02` hao tươi + `spoiled` · `AC-P3-03` giữ/tiêu theo id · `AC-P3-04` giá theo tươi + boa · `AC-P3-05` HUD độ tươi · `AC-P3-06` manifest v1.2 + scenario + JSONL · `AC-P3-07` migration + regression.
+
+## Mốc & lịch Phase 3 (35 phút · ticket §3)
+
+| Phút | Việc | Ai chủ trì |
+|---|---|---|
+| 0–7 | Phân tích tác động; ghi **quyết định đổi schema**, chốt **thứ tự tích hợp** và chia lại việc | cả nhóm (Sơn/Hải) |
+| 7–25 | Viết **schema/adapter, Lặn, Quán, HUD song song**; tích hợp theo thứ tự đã chốt; **phút 20 chạy smoke kho + standup** + hỗ trợ lát trễ | 4 lát |
+| 25–32 | **Bật v1.2** trên bản tích hợp; smoke **hai tiến trình + `day`**; **regression P1–P2**; chốt **CHANGELOG** + bằng chứng + **tag**; retro nhanh | Quý Anh · Hải |
+| 32–35 | Dự phòng; **đẩy `phase-3` chậm nhất 2:30** | Hải |
+
+**Smoke bàn giao (bắt buộc):**
+```bash
+# 1. kho cá thể: cập bến ngay ở frame 0 với hold fresh=100
+<headless_cmd> --mode gather --seed 42 --scenario hold100.json --inputs dock-inputs.json --ticks 1 --out g3.jsonl --inventory-out catch3.json
+# 2. quán đọc đúng id/kind/fresh sau lần hao ở bước gather
+<headless_cmd> --mode quan --seed 42 --inventory catch3.json --ticks 0 --out q3.jsonl
+# 3. day bàn giao trong cùng tick chuyển pha
+<headless_cmd> --mode day  --seed 42 --days 1 --ticks 22200 --out day3.jsonl
+# hold100.json = {"gather":{"hold":[{"id":"I1","kind":"ca_linh","fresh":100}],"random_fish":false,"monsters":[]}}
+# dock-inputs.json = {"frames":[{"tick":0,"interact":true}]}
+```
+
+## Định nghĩa hoàn thành Phase 3 (DoD · ticket)
+
+- [ ] **Contract v1.2** bàn giao kho cá thể **qua file và trong `day`**. **Kho đếm trả mã 2.** Id, độ tươi, hàng ươn, giữ chỗ, giá và JSONL đúng luật.
+- [ ] **HUD** cho thấy độ tươi hoặc hàng ươn. Có test qua **ngưỡng**, **thử giữ lại khi hàng vừa ươn**, **chốt giá** và **bàn giao**.
+- [ ] Có **ghi tác động**, **quyết định đổi schema** và **thứ tự tích hợp** giữ main chạy được. Các lát đã tích hợp trong fork chung, có bằng chứng đóng góp từng người.
+- [ ] `CHANGELOG.md` ghi **breaking change**; **regression P1–P2** còn hiệu lực đạt; test thay đổi có lý do. `docs/verification/phase-3.md` + bằng chứng **khớp commit gắn tag**. `docs/clarify.md` và `docs/ai-usage-log.md` đã cập nhật.
+- [ ] Nếu làm mở rộng: có test + bằng chứng cho từng mục.
+- [ ] **Đẩy tag `phase-3`** trỏ commit bàn giao trên `main` **chậm nhất 2:30**.
+
+## Checklist nhanh Phase 3
+
+- [ ] **Sơn + Hải** — schema/adapter kho cá thể + migration + manifest v1.2 (`AC-P3-01..` , `AC-P3-06`, `AC-P3-07`).
+- [ ] **Đức** — hao tươi giỏ + `spoiled` + LIFO (`AC-P3-02`).
+- [ ] **Quý Anh** — giữ/tiêu theo id + giá theo tươi (nhả & thử lại khi ươn) (`AC-P3-03`, `AC-P3-04`) + ma trận.
+- [ ] **Tùng** — `day` bàn giao cùng tick + tích hợp; mở rộng `current`/`reservations`.
+- [ ] **Nhài** — HUD độ tươi/ươn (sáng) + QA + smoke/regression + mốc.
+- [ ] **Sơn** — HUD quan độ tươi + `CREDITS`/`AGENTS`/skills.
+- [ ] Bàn giao: kho cá thể qua file + `day`; kho đếm ⇒ mã 2; regression P1–P2 đạt.
+- [ ] `CHANGELOG.md` + `docs/verification/phase-3.md` + `docs/proof/phase-3/`; tag `phase-3` < 2:30.
