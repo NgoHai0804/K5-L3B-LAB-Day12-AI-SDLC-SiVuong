@@ -8,6 +8,9 @@
 | 4 | 2026-11-21 | Bắt thất bại vì giỏ đầy thì có vào hồi chiêu `catch_cd_ticks` không? | **Giả định:** không. Hồi chiêu chỉ đặt khi bắt **thành công**, để người chơi không bị phạt vì một cú bấm không có tác dụng. | Đức (PO) |
 | 5 | 2026-11-21 | **Xung đột hợp đồng:** `docs/contracts/README.md` §4 đóng băng `hold_full` → `data` = `kind`, nhưng `_try_hold` của lát 1 phát `action`/`node_id`/`required`/`free` và **không có `kind`**. | **Chốt theo hợp đồng:** `hold_full` **phải** có `kind` (§4 là nguồn sự thật, test ẩn bám theo nó). Đức thêm `kind` vào payload và **giữ nguyên** các khoá chẩn đoán của lát 1 (§2: bên đọc bỏ qua trường chưa biết). **Hệ quả:** `tests/test_gather_water.py:136` dùng `assertEqual` chính xác nên đỏ — **Hải cần nới assert** (xem ghi chú dưới bảng). Không mở ADR vì đây là sửa cho **khớp** hợp đồng, không phải đổi hợp đồng. | Đức (PO), Hải xác nhận |
 
+| 6 | 2026-11-21 | Phase 2: "đầu ca 8 đàn ở 8 điểm khác nhau" — sinh bằng seed hay danh sách tường minh? | **Giả định:** khai tường minh `fish_initial` = 8 đàn trong `game.contract.json` (8 điểm khác nhau trong dải loài), không sinh đầu ca bằng RNG. Lý do: giữ tất định, dễ đọc, và khung đã đọc `fish_initial`. Sinh thêm vẫn dùng `Streams` lúc `phase_tick=360k`. | Hải (Integrator) |
+| 7 | 2026-11-21 | Phase 2: cá do scenario đặt **ngoài** dải độ sâu (dữ liệu P1, ví dụ `ca_loc` ở `d=5`) thì bơi thế nào? | **Giả định:** mở rộng biên dải để chứa vị trí đầu (không dịch chuyển đột ngột) ⇒ giữ regression P1 xanh. Cá do `fish_initial`/sinh luôn nằm trong dải chuẩn. | Hải (Integrator) |
+
 ## Ghi chú #5 — việc Hải cần làm (1 dòng)
 
 `tests/test_gather_water.py:136` đang khoá cứng payload cũ. Sửa thành so theo tập con để không vỡ khi thêm khoá:

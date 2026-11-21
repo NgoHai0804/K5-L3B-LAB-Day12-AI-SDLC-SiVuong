@@ -11,7 +11,8 @@ import tempfile
 from .errors import BadInput
 
 KINDS_P1 = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung")
-# v1.1 (TICKET-02 §1.3): thêm cá kèo và kèo nèo. Bên đọc/ghi kho dùng KINDS (đủ 6 nguyên liệu).
+# v1.1 (TICKET-02 §1.3, ADR-0001): thêm ca_keo (cá kèo) và keo_neo (bông kèo nèo).
+# Giữ KINDS_P1 = 4 nguyên liệu Phase 1; KINDS là tập đủ 6 nguyên liệu cho đọc/ghi kho.
 KINDS = KINDS_P1 + ("ca_keo", "keo_neo")
 
 
