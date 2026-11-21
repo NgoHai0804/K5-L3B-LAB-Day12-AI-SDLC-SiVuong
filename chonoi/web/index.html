@@ -142,7 +142,7 @@ function drawGather(w, h) {
   const meta = snap.meta || {};
   const b = meta.bounds || { x: [0, 100], d: [0, 30] };
   const X = b.x[1], D = b.d[1], SKY = 6;
-  const top = 64, bottom = 56;
+  const top = 76, bottom = 84;  // chừa chỗ cho HUD chữ >= 18 px (Ticket-02)
   const s = Math.max(1, Math.min((w - 20) / (X + 4), (h - top - bottom) / (D + SKY + 1)));
   const ox = (w - s * (X + 4)) / 2 + 2 * s, oy = top + SKY * s;
   const sx = (x) => ox + x * s, sy = (d) => oy + d * s;
@@ -194,36 +194,72 @@ function drawGather(w, h) {
       ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(a) * 0.9 * s, py + Math.sin(a) * 0.9 * s); ctx.stroke();
     }
   }
-  // HUD trên
-  const blink = Math.floor((snap.tick || 0) / 15) % 2 === 0;  // nhấp nháy theo tick, ~4 lần/giây
+  // gợi ý tương tác ngay trên đầu nhân vật: bến xét trước nút hái (đúng thứ tự luật)
+  if (p && p.pos) {
+    const underwater = p.at_surface === undefined ? p.pos[1] > 0.5 : !p.at_surface;
+    let hint = null;
+    if (Math.hypot(p.pos[0] - dp[0], p.pos[1] - dp[1]) <= dr) hint = "E: cập bến";
+    else if (!underwater && meta.interact_radius) {
+      const near = (snap.nodes || []).some((n) => n.ready !== false && Math.hypot(p.pos[0] - n.pos[0], p.pos[1] - n.pos[1]) <= meta.interact_radius);
+      if (near) hint = "E: hái";
+    }
+    if (hint) {
+      const hx = sx(p.pos[0]), hy = sy(p.pos[1]) - 1.6 * s;
+      ctx.font = "bold 18px system-ui, sans-serif";
+      const tw = ctx.measureText(hint).width + 16;
+      ctx.fillStyle = "rgba(10,18,24,.8)"; ctx.fillRect(hx - tw / 2, hy - 20, tw, 26);
+      text(hint, hx, hy, { size: 18, align: "center", color: "#ffe082" });
+    }
+  }
+  // HUD trên — chữ >= 18 px (Ticket-02 §HUD sáng)
+  const blink = Math.floor((snap.tick || 0) / 15) % 2 === 0;  // nhấp nháy theo tick, ~2 lần/giây
   const TPS = meta.tick_hz || 60;
   if (snap.time_left_ticks !== undefined) {
-    const tl = snap.time_left_ticks, warn = tl < 20 * TPS, crit = tl < 10 * TPS;
-    if (!(crit && !blink)) text("⏱ " + fmtTime(tl), 14, 28, { size: 20, color: warn ? "#ff5252" : "#e8eef2" });
+    const tl = snap.time_left_ticks, warn = tl <= 30 * TPS, crit = tl < 10 * TPS;
+    if (!(crit && !blink)) text("⏱ " + fmtTime(tl), 14, 30, { size: 22, color: warn ? "#ff5252" : "#e8eef2" });
   }
+  let hx = 380;  // vị trí sau thanh oxy
   if (p && p.oxygen_ticks !== undefined && p.oxygen_max_ticks) {
     const low = p.oxygen_ticks < p.oxygen_max_ticks * 0.25, empty = p.oxygen_ticks <= 0;
-    bar(110, 12, 220, 18, p.oxygen_ticks / p.oxygen_max_ticks, low ? "#ef5350" : "#4fc3f7", "Oxy " + Math.ceil(p.oxygen_ticks / 60) + "s");
-    if (empty && blink) { ctx.strokeStyle = "#ff5252"; ctx.lineWidth = 3; ctx.strokeRect(108, 10, 224, 22); ctx.lineWidth = 1; }
-    if (p.zero_oxy_ticks > 0 && blink) text("⚠ Ngạt!", 420, 29, { size: 18, color: "#ff5252" });
+    const frac = p.oxygen_ticks / p.oxygen_max_ticks;
+    ctx.globalAlpha = low && !blink ? 0.45 : 1;  // < 25%: đổi màu + nháy
+    bar(120, 10, 240, 26, frac, low ? "#ef5350" : "#4fc3f7");
+    ctx.globalAlpha = 1;
+    text("Oxy " + Math.ceil(p.oxygen_ticks / 60) + "s", 240, 30, { size: 18, align: "center" });
+    if (empty && blink) { ctx.strokeStyle = "#ff5252"; ctx.lineWidth = 3; ctx.strokeRect(118, 8, 244, 30); ctx.lineWidth = 1; }
   }
-  // chú thích màu nguyên liệu (chỉ loại đang có trên bản đồ / trong giỏ)
-  const kinds = [...new Set([...(snap.nodes || []).map((n) => n.kind), ...(snap.fish || []).map((f) => f.kind), ...(snap.hold || [])])].sort();
-  kinds.forEach((k, i) => {
-    const x0 = w - 14 - (kinds.length - i) * 105;
-    ctx.fillStyle = kc(k); ctx.fillRect(x0, 18, 12, 12);
-    text(KIND_NAME[k] || k, x0 + 17, 29, { size: 12, color: "#cfd8dc" });
-  });
   if (p && p.hp !== undefined && p.hp_max) {
     let hs = "";
     for (let i = 0; i < p.hp_max; i++) hs += i < p.hp ? "♥" : "♡";
-    text(hs, 345, 29, { size: 22, color: "#ff6b81" });
+    text(hs, hx, 31, { size: 24, color: "#ff6b81" });
+    hx += p.hp_max * 26 + 16;
   }
-  if (p && p.pos) text(`x ${p.pos[0].toFixed(1)}  d ${p.pos[1].toFixed(1)}`, 14, 52, { size: 12, color: "#9fb3c0" });
-  if (p && p.catch_cd_ticks > 0) text("hồi chiêu bắt " + (p.catch_cd_ticks / 60).toFixed(1) + "s", 150, 52, { size: 12, color: "#9fb3c0" });
+  if (p && p.zero_oxy_ticks > 0 && blink) text("⚠ Hết hơi!", hx, 30, { size: 20, color: "#ff5252" });
+  // hàng 2: độ sâu + vùng, hồi bắt
+  if (p && p.pos) {
+    const d = p.pos[1], zone = d <= (meta.surface_depth ?? 0.5) ? "Mặt nước" : d < 10 ? "Nông" : d < 20 ? "Giữa" : "Sâu";
+    text(`Độ sâu ${d.toFixed(1)} m · ${zone}`, 14, 62, { size: 18, color: "#b3e5fc" });
+  }
+  if (p && p.catch_cd_ticks > 0) text("Hồi bắt " + (p.catch_cd_ticks / 60).toFixed(1) + "s", 260, 62, { size: 18, color: "#cfd8dc" });
+  // chú thích màu nguyên liệu (chỉ loại đang có trên bản đồ / trong giỏ)
+  const kinds = [...new Set([...(snap.nodes || []).map((n) => n.kind), ...(snap.fish || []).map((f) => f.kind), ...(snap.hold || [])])].sort();
+  kinds.forEach((k, i) => {
+    const x0 = w - 14 - (kinds.length - i) * 130;
+    ctx.fillStyle = kc(k); ctx.fillRect(x0, 47, 16, 16);
+    text(KIND_NAME[k] || k, x0 + 22, 62, { size: 18, color: "#cfd8dc" });
+  });
+  // thông báo "không đủ chỗ" từ event hold_full gần nhất (hiện ~3 s)
+  const hf = list(snap.events).filter((e) => e.name === "hold_full" && (snap.tick || 0) - e.tick <= 180).pop();
+  if (hf && hf.data) {
+    const msg = "Giỏ không đủ chỗ!";
+    ctx.font = "bold 20px system-ui, sans-serif";
+    const tw = ctx.measureText(msg).width + 24;
+    ctx.fillStyle = "rgba(120,20,20,.88)"; ctx.fillRect(w / 2 - tw / 2, top + 10, tw, 32);
+    text(msg, w / 2, top + 33, { size: 20, align: "center", color: "#fff" });
+  }
   // giỏ (khoang) dưới
   if (snap.hold && snap.hold_capacity) {
-    const cap = snap.hold_capacity, sz = Math.min(30, (w - 260) / cap - 4), y0 = h - bottom + 8;
+    const cap = snap.hold_capacity, sz = Math.min(30, (w - 260) / cap - 4), y0 = h - bottom + 14;
     const n = snap.hold.length, full = n >= cap;
     for (let i = 0; i < cap; i++) {
       const x0 = 14 + i * (sz + 4);
@@ -238,9 +274,9 @@ function drawGather(w, h) {
     }
     const names = {}; snap.hold.forEach((k) => (names[k] = (names[k] || 0) + 1));
     text("Giỏ " + n + "/" + cap + (full ? "  ĐẦY!" : "") + "  " + Object.keys(names).map((k) => (KIND_NAME[k] || k) + "×" + names[k]).join(", "),
-      14, y0 + sz + 16, { size: 12, color: full ? "#ff5252" : "#cfd8dc" });
+      14, y0 + sz + 24, { size: 18, color: full ? "#ff5252" : "#cfd8dc" });
   }
-  text("WASD/mũi tên bơi · E hái / cập bến · Space bắt cá · R chơi lại", w - 10, h - 14, { size: 12, align: "right", color: "#9fb3c0" });
+  text("WASD bơi · E hái/cập bến · Space bắt cá · R chơi lại", w - 14, h - 14, { size: 18, align: "right", color: "#9fb3c0" });
 }
 
 // ----- cảnh QUÁN: nhìn từ trên xuống, x sang phải, z lên (bắc) -----
