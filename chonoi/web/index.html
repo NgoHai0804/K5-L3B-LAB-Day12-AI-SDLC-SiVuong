@@ -88,6 +88,10 @@ const DISH_NAME = { ca_loc_nuong_trui: "cá lóc nướng", goi_bong_sung: "gỏ
 const STOVE_STATE = { idle: "trống", cooking: "đang nấu", ready: "đã chín" };
 const CUSTOMER_STATE = { waiting: "đang đợi", eating: "đang ăn" };
 const kc = (k) => KIND_COLOR[k] || "#bbbbbb";
+// Giỏ/kho đọc được CẢ HAI schema: v1.0–1.1 là chuỗi kind, v1.2 là cá thể {id, kind, fresh}
+const itemKind = (it) => (it && typeof it === "object" ? it.kind : it);
+const itemFresh = (it) => (it && typeof it === "object" && Number.isFinite(it.fresh) ? it.fresh : null);
+const freshColor = (f, spoiled) => (f < spoiled ? "#9e9e9e" : f < 60 ? "#ffca28" : "#66bb6a");
 const dishName = (k) => DISH_NAME[k] || k || "chưa gọi";
 const list = (v) => Array.isArray(v) ? v : [];
 
@@ -242,7 +246,7 @@ function drawGather(w, h) {
   }
   if (p && p.catch_cd_ticks > 0) text("Hồi bắt " + (p.catch_cd_ticks / 60).toFixed(1) + "s", 260, 62, { size: 18, color: "#cfd8dc" });
   // chú thích màu nguyên liệu (chỉ loại đang có trên bản đồ / trong giỏ)
-  const kinds = [...new Set([...(snap.nodes || []).map((n) => n.kind), ...(snap.fish || []).map((f) => f.kind), ...(snap.hold || [])])].sort();
+  const kinds = [...new Set([...(snap.nodes || []).map((n) => n.kind), ...(snap.fish || []).map((f) => f.kind), ...list(snap.hold).map(itemKind)])].sort();
   kinds.forEach((k, i) => {
     const x0 = w - 14 - (kinds.length - i) * 130;
     ctx.fillStyle = kc(k); ctx.fillRect(x0, 47, 16, 16);
@@ -257,14 +261,37 @@ function drawGather(w, h) {
     ctx.fillStyle = "rgba(120,20,20,.88)"; ctx.fillRect(w / 2 - tw / 2, top + 10, tw, 32);
     text(msg, w / 2, top + 33, { size: 20, align: "center", color: "#fff" });
   }
+  // độ tươi (v1.2): ngưỡng ươn đọc từ manifest nếu có, mặc định theo Ticket-03
+  const SPOILED = (meta.freshness && meta.freshness.spoiled_below) ?? (snap.freshness && snap.freshness.spoiled_below) ?? 30;
+  // thông báo "đã ươn" từ event spoiled gần nhất (hiện ~3 s)
+  const sp = list(snap.events).filter((e) => e.name === "spoiled" && (snap.tick || 0) - e.tick <= 180).pop();
+  if (sp && sp.data) {
+    const msg = `${KIND_NAME[sp.data.kind] || sp.data.kind || "Hàng"} ${sp.data.item_id || ""} đã ươn!`;
+    ctx.font = "bold 20px system-ui, sans-serif";
+    const tw = ctx.measureText(msg).width + 24, yb = hf ? top + 48 : top + 10;
+    ctx.fillStyle = "rgba(90,70,20,.9)"; ctx.fillRect(w / 2 - tw / 2, yb, tw, 32);
+    text(msg, w / 2, yb + 23, { size: 20, align: "center", color: "#ffe082" });
+  }
   // giỏ (khoang) dưới
   if (snap.hold && snap.hold_capacity) {
     const cap = snap.hold_capacity, sz = Math.min(30, (w - 260) / cap - 4), y0 = h - bottom + 14;
     const n = snap.hold.length, full = n >= cap;
     for (let i = 0; i < cap; i++) {
-      const x0 = 14 + i * (sz + 4);
+      const x0 = 14 + i * (sz + 4), it = snap.hold[i];
       ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(x0, y0, sz, sz);
-      if (snap.hold[i]) { ctx.fillStyle = kc(snap.hold[i]); ctx.fillRect(x0 + 3, y0 + 3, sz - 6, sz - 6); }
+      if (it) {
+        const f = itemFresh(it), bad = f !== null && f < SPOILED;
+        ctx.fillStyle = kc(itemKind(it)); ctx.globalAlpha = bad ? 0.35 : 1;
+        ctx.fillRect(x0 + 3, y0 + 3, sz - 6, sz - 6); ctx.globalAlpha = 1;
+        if (bad) {  // ươn: gạch chéo xám
+          ctx.strokeStyle = "#e0e0e0"; ctx.lineWidth = 2; ctx.beginPath();
+          ctx.moveTo(x0 + 5, y0 + 5); ctx.lineTo(x0 + sz - 5, y0 + sz - 5); ctx.moveTo(x0 + sz - 5, y0 + 5); ctx.lineTo(x0 + 5, y0 + sz - 5); ctx.stroke(); ctx.lineWidth = 1;
+        }
+        if (f !== null) {  // thanh độ tươi dưới ô: xanh >= 60, vàng 30–60, xám = ươn
+          ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(x0, y0 + sz + 2, sz, 4);
+          ctx.fillStyle = freshColor(f, SPOILED); ctx.fillRect(x0, y0 + sz + 2, sz * Math.max(0, Math.min(1, f / 100)), 4);
+        }
+      }
       if (full) { ctx.strokeStyle = "#ff5252"; ctx.strokeRect(x0 + .5, y0 + .5, sz - 1, sz - 1); }
     }
     if (n > 0) {  // món nhặt sau cùng: mất đầu tiên khi ngất (LIFO)
@@ -272,9 +299,12 @@ function drawGather(w, h) {
       ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(xl - 1, y0 - 1, sz + 2, sz + 2); ctx.lineWidth = 1;
       text("▲", xl + sz / 2, y0 - 3, { size: 9, align: "center", color: "#ffffff" });
     }
-    const names = {}; snap.hold.forEach((k) => (names[k] = (names[k] || 0) + 1));
-    text("Giỏ " + n + "/" + cap + (full ? "  ĐẦY!" : "") + "  " + Object.keys(names).map((k) => (KIND_NAME[k] || k) + "×" + names[k]).join(", "),
-      14, y0 + sz + 24, { size: 18, color: full ? "#ff5252" : "#cfd8dc" });
+    const names = {}; snap.hold.forEach((it) => { const k = itemKind(it); names[k] = (names[k] || 0) + 1; });
+    const fr = snap.hold.map(itemFresh).filter((f) => f !== null);
+    const spoiledN = fr.filter((f) => f < SPOILED).length;
+    const freshTxt = fr.length ? `  · tươi TB ${Math.floor(fr.reduce((a, b) => a + b, 0) / fr.length)}` + (spoiledN ? ` · ${spoiledN} ươn` : "") : "";
+    text("Giỏ " + n + "/" + cap + (full ? "  ĐẦY!" : "") + "  " + Object.keys(names).map((k) => (KIND_NAME[k] || k) + "×" + names[k]).join(", ") + freshTxt,
+      14, y0 + sz + 26, { size: 18, color: full || spoiledN ? "#ff5252" : "#cfd8dc" });
   }
   text("WASD bơi · E hái/cập bến · Space bắt cá · R chơi lại", w - 14, h - 14, { size: 18, align: "right", color: "#9fb3c0" });
 }
