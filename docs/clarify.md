@@ -2,30 +2,8 @@
 
 | # | Ngày giờ | Câu hỏi | Trả lời / giả định | Ai quyết |
 |---|---|---|---|---|
-| 1 | 2026-11-21 | Giỏ không đủ chỗ cho cả `node_yield`/`fish_yield` thì nhận một phần hay bỏ hẳn? | **Chốt:** bỏ hẳn (all-or-nothing) — chỉ phát `hold_full`, nút/cá **không** bị tiêu. Lý do: `_try_hold` của lát 1 so `len(amounts) > free` rồi `extend` cả mảng, không có đường nhận một phần; và `hold_full` không mang số lượng đã nhận nên nhận một phần sẽ không quan sát được từ event. | Đức (PO) + Hải (Integrator) |
-| 2 | 2026-11-21 | Ai sở hữu hàm thêm món vào giỏ? `TEAM.md` giao giỏ cho S1 (Hải) nhưng chỉ S2 (Đức) sinh món. | **Chốt:** dùng **một** seam `GatherSim._try_hold(action, item_id, amounts, events)` của lát 1. Lát 2 (hái, bắt cá) **gọi lại**, không tự `self.hold.append`. Đức đã bỏ helper `_try_take` trùng lặp của mình. | Hải (Integrator) |
-| 3 | 2026-11-21 | Bắt cá xong đàn cá có mất khỏi bản đồ không? `fish_yield` là số món mỗi lần bắt hay cho cả đàn? | **Giả định:** bắt là lấy cả đàn ⇒ xoá cá khỏi `fish[]`, cho `fish_yield[kind]` món. Lý do: `fish_caught` có `fish_id` nên event gắn với một thực thể cụ thể; P1 cá đứng yên và không sinh thêm, nếu không xoá sẽ thành nguồn nguyên liệu vô hạn. | Đức (PO) |
-| 4 | 2026-11-21 | Bắt thất bại vì giỏ đầy thì có vào hồi chiêu `catch_cd_ticks` không? | **Giả định:** không. Hồi chiêu chỉ đặt khi bắt **thành công**, để người chơi không bị phạt vì một cú bấm không có tác dụng. | Đức (PO) |
-| 5 | 2026-11-21 | **Xung đột hợp đồng:** `docs/contracts/README.md` §4 đóng băng `hold_full` → `data` = `kind`, nhưng `_try_hold` của lát 1 phát `action`/`node_id`/`required`/`free` và **không có `kind`**. | **Chốt theo hợp đồng:** `hold_full` **phải** có `kind` (§4 là nguồn sự thật, test ẩn bám theo nó). Đức thêm `kind` vào payload và **giữ nguyên** các khoá chẩn đoán của lát 1 (§2: bên đọc bỏ qua trường chưa biết). **Hệ quả:** `tests/test_gather_water.py:136` dùng `assertEqual` chính xác nên đỏ — **Hải cần nới assert** (xem ghi chú dưới bảng). Không mở ADR vì đây là sửa cho **khớp** hợp đồng, không phải đổi hợp đồng. | Đức (PO), Hải xác nhận |
-
-| 6 | 2026-11-21 | Phase 2: "đầu ca 8 đàn ở 8 điểm khác nhau" — sinh bằng seed hay danh sách tường minh? | **Giả định:** khai tường minh `fish_initial` = 8 đàn trong `game.contract.json` (8 điểm khác nhau trong dải loài), không sinh đầu ca bằng RNG. Lý do: giữ tất định, dễ đọc, và khung đã đọc `fish_initial`. Sinh thêm vẫn dùng `Streams` lúc `phase_tick=360k`. | Hải (Integrator) |
-| 7 | 2026-11-21 | Phase 2: cá do scenario đặt **ngoài** dải độ sâu (dữ liệu P1, ví dụ `ca_loc` ở `d=5`) thì bơi thế nào? | **Giả định:** mở rộng biên dải để chứa vị trí đầu (không dịch chuyển đột ngột) ⇒ giữ regression P1 xanh. Cá do `fish_initial`/sinh luôn nằm trong dải chuẩn. | Hải (Integrator) |
-
-## Ghi chú #5 — việc Hải cần làm (1 dòng)
-
-`tests/test_gather_water.py:136` đang khoá cứng payload cũ. Sửa thành so theo tập con để không vỡ khi thêm khoá:
-
-```python
-    def test_06_try_hold_reports_full_with_free_and_required(self):
-        cap = load_contract()["tuning"]["gather"]["hold_capacity"]
-        sim = self._sim(["ca_loc"] * cap)
-        ev = []
-        self.assertFalse(sim._try_hold("gather", "N3", ["bong_sung"], ev))
-        self.assertEqual(len(ev), 1)
-        name, data = ev[0]
-        self.assertEqual(name, "hold_full")
-        self.assertEqual(data["kind"], "bong_sung")          # hợp đồng §4
-        self.assertEqual(data["action"], "gather")
-        self.assertEqual(data["node_id"], "N3")
-        self.assertEqual((data["required"], data["free"]), (1, 0))
-```
+| 1 | 2026-11-21 04:30 | Fork của nhóm điền `TEAM.md` với handle nào, `team_size` bao nhiêu? | Suy từ `git log` (email noreply GitHub) các handle: `NgoHai0804`, `buiquyanh9-ai`, `son309`, `chanhochust`, `wewewewe07`; giữ `team_size = 5`. Bảng mẫu trong `tests/test_team_check.py` chuyển sang chuỗi inline để `TEAM.md` thật không bị coi là mẫu. | Integrator (NgoHai0804) |
+| 2 | 2026-11-21 04:40 | Contract v1.3 có được đổi gameplay/tuning/kho/JSONL không? | Không. v1.3 chỉ thêm `contract_version`, `bench_cmd`, `soak_cmd`, `extensions`; giữ nguyên v1.2. | PO (son309) |
+| 3 | 2026-11-21 04:50 | Bảng xếp hạng ghi khi nào, giữ bao nhiêu mục? | Chỉ lượt `--mode day` đủ **5 Ngày chuẩn**, **không** scenario, `reason:"days_complete"`; sắp điểm giảm dần (hòa ổn định), giữ tối đa **10** mục; tên Unicode khác rỗng. | Integrator (NgoHai0804) |
+| 4 | 2026-11-21 05:00 | Phụ đề SFX có cần hiện khi đang tắt tiếng (M) không? | Có — phụ đề là phần nhìn, vẽ độc lập với âm thanh nên vẫn hiện khi tắt tiếng. | QA lead (buiquyanh9-ai) |
+| 5 | 2026-11-21 05:10 | Ảnh bằng chứng cảnh báo chế độ thường lấy sao? | Cửa sổ cảnh báo ngắn nên khó chụp live; nhóm bơm snapshot để chụp. Ảnh chế độ thường chưa chốt nội dung — ghi trung thực ở `docs/verification/phase-4.md` (AC-P4-06). | QA (wewewewe07) |

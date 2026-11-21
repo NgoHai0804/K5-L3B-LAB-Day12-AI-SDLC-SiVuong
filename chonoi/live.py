@@ -37,6 +37,9 @@ RECENT_EVENTS = 40
 class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
+    # Sáng tạo của nhóm (chỉ cửa sổ chơi, headless không bật): sprint khi giữ Shift.
+    EXTRAS = {"sprint": {}}
+
     def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None):
         self._args = (mode, tuning, scenario, seed, inventory)
         self.mode = mode
@@ -48,7 +51,7 @@ class LiveGame:
         self._reset()
 
     def _reset(self):
-        self.session = Session(*self._args)
+        self.session = Session(*self._args, extras=self.EXTRAS)
         self.inputs = LiveInputs()
         self.events = []
         self._saved = False
@@ -101,7 +104,8 @@ class LiveGame:
     def state_json(self) -> bytes:
         with self._lock:
             snap = self.session.snapshot()
-            snap["meta"] = self.tuning[self.mode]
+            snap["meta"] = self.tuning.get(snap.get("phase", self.mode), {})
+            snap["menu"] = self.tuning["menu"]
             snap["events"] = list(self.events)
             snap["finished"] = self.session.done
             snap["reason"] = self.session.sim.reason if self.session.done else None
@@ -116,13 +120,16 @@ class LiveGame:
             if not ok:
                 raise ValueError("move phải là [a, b] trong [-1, 1]")
         buttons = {}
-        for b in ("interact", "catch"):
+        for b in ("interact", "catch", "sprint"):
             if b in body:
                 if not isinstance(body[b], bool):
                     raise ValueError(f"{b} phải là boolean")
                 buttons[b] = body[b]
+        presses = [p for p in ("pause", "shop_done") if body.get(p) is True]
         with self._lock:
             self.inputs.set(move, **buttons)
+            for p in presses:
+                self.inputs.press(p)
 
     def restart(self):
         with self._lock:

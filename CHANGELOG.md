@@ -1,19 +1,21 @@
 # Changelog
+
+## v1.0.0 — Phase 4 (2026-11-21) 🎉
+### Contract v1.3 (Phase 4 — "Bench + đóng gói + Release") — tương thích ngược
+- Thêm `bench_cmd` (benchmark **có render**, cảnh sáng `gather`, xuất `avg_fps`, `p1_low_fps`, `frames`, `measured_s`, `load_ms`), `soak_cmd` (soak **headless nhiều Ngày**, bot tất định, `days_completed`/`crashes`), và `extensions: ["leaderboard", "subtitles"]`.
+- Phần gameplay/tuning/kho cá thể/JSONL của v1.2 **giữ nguyên**; `contract_version:"1.3"`, vẫn đọc được `"1.2"` (`chonoi/contract.py`).
+- **Bảng xếp hạng cục bộ** (`leaderboard.json`, file JSON riêng — không phải JSONL): ghi **một** mục cho lượt `--mode day` đủ **5 Ngày chuẩn**, không scenario, `reason:"days_complete"`; sắp điểm giảm dần (hòa ổn định), giữ tối đa **10** mục, tên Unicode khác rỗng. `headless --leaderboard <file> --player-name <tên>`; xuất bằng `play --export-leaderboard <file>`. Thiếu một trong hai cờ hoặc sai mode → mã 2.
+- **Cửa sổ chơi:** ba cảnh báo người chơi (sáng "THỦY QUÁI GẦN ĐÂY!", "SẮP HẾT OXY"; tối "KHÁCH SẮP GIẬN!"), **chế độ tương phản cao** (phím `H`), và **phụ đề SFX** hiện cả khi tắt tiếng (`M`). Tất cả **tắt ở headless** — lõi không đổi.
+
 ## Unreleased
 
-### Breaking (Phase 3 · TICKET-03 · contract v1.2)
-- **Kho đếm theo loại → kho cá thể**: file kho và `hold`/`stock` giờ là `{"items":[{id,kind,fresh}]}` (mảng cá thể). Kho rỗng `{"items":[]}`.
-- Bên đọc **chọn schema theo `contract_version`**; ở **v1.2**, file kho đếm trả **mã 2**.
-- `gather.hold`, `quan.stock`, `customers[].reserved`, `cook_started.data.items`, `lost` (monster_hit/faint) đổi sang **cá thể/id**; thêm event **`spoiled`**.
-- Cách cập nhật fixture: thay `{kind:int}` bằng mảng `[{id,kind,fresh}]`; id `I1,I2,…` cấp theo thứ tự vào giỏ, tăng xuyên pha/Ngày.
+### Contract v1.2 (Phase 3 — "Mùa Nước Nổi") — BREAKING
+- Kho đếm `{"items": {kind: n}}` → kho cá thể `{"items": [{"id", "kind", "fresh"}]}`. File kho đếm hoặc sai schema/kind lạ/id trùng/fresh ngoài [0,100] → mã 2.
+- `gather.hold`, `quan.stock` là mảng cá thể; `customers[].reserved` là mảng id cá thể; `lost`, `cook_started.items`, `gather_end.inventory` theo cùng schema.
+- Độ tươi: giỏ −0.5/s, kho quán −0.25/s, ươn khi < 30 (event `spoiled`); giữ chỗ theo id tươi nhất; phần giữ vừa ươn thì nhả và giữ lại một lần, thiếu → `unfulfillable`; `base_price = floor(giá × trung bình fresh / 100)`.
+- Cập nhật fixture: đổi `["ca_loc", ...]` thành `[{"id": "I1", "kind": "ca_loc", "fresh": 100}, ...]`; `reserved: {"ca_loc": 1}` thành `reserved: ["I1"]`.
+- ADR `docs/adr/0002-kho-ca-the-do-tuoi.md` (schema kho cá thể + thứ tự tích hợp); `docs/plan/phase-3.md`.
 
-### Added (Phase 3)
-- `freshness {initial:100, gather_decay_per_s:0.5, quan_decay_per_s:0.25, spoiled_below:30}`; giá theo tươi (`base_price = floor(giá × fresh trung bình / 100)`).
-- Mở rộng (nếu bật): dòng nước lũ (`current`), khách đặt trước (`reservations`).
-
-### Docs (Phase 3)
-- ADR `docs/adr/0002-kho-ca-the-do-tuoi.md` (quyết định đổi schema + thứ tự tích hợp).
-- `docs/plan/phase-3.md`, mục "Phase 3" trong `TEAM.md`.
-
-## Phase 2 (TICKET-02 · contract v1.1)
-- Tuning v1.1: cá bơi/sinh, `ca_keo`/`keo_neo`, nút N5/N6, 6 món, kế hoạch D1–D5, Shop `oxygen`/`hp`, vòng ngày `--mode day`.
+### Contract v1.1 (Phase 2 — "Một ngày ở chợ nổi")
+- Số chuẩn, 6 nguyên liệu / 6 món, 2 bếp / 4 bàn, cá bơi và sinh theo lịch (`fish_spawned`), Cá Sấu Năm Chèo (`monster_hit`, bất tử, recoil, ngất do quái), `--mode day --days N` (DaySim: gather → quan → shop, `day_plan`, `bought` / `buy_failed`, `shop_end`), `pause` / `resumed`, `sim_tick` tách tick ngoài.
+- Test P1 đổi có lý do (ghi đầu `tests/test_rules_p1.py`): schema kho mới, giá chốt theo độ tươi, `fish_initial` là số đàn, cá fixture dùng `random_fish:false` vì cá bơi.
