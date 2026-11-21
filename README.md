@@ -1,4 +1,61 @@
-# Day 12 — AI SDLC: Quán Ăn Chợ Nổi
+# Quán Ăn Chợ Nổi — bản của nhóm
+
+Game 2D quản lý quán ăn miền Tây. **Sáng** Út Sen lặn sông Chín Khúc hái bông, bắt cá (mặt cắt ngang). **Tối** em nấu và bưng món trên nhà bè của Má Tư (nhìn từ trên xuống). Hai buổi nối nhau bằng **một file kho**. Vòng lặp "ngày lặn, đêm mở quán" lấy cảm hứng từ thể loại diving + restaurant; nhân vật, bối cảnh và đồ họa là bản gốc của lab.
+
+## Chạy (macOS / Linux, chỉ cần Python 3.10+, không cài thêm gì)
+
+```bash
+git clone <fork-của-nhóm> && cd <fork-của-nhóm>
+python3 -m chonoi.play                                   # chiến dịch 10 ngày, mở http://127.0.0.1:8000/
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v   # toàn bộ test (1 lệnh)
+```
+
+Chơi riêng từng buổi: `python3 -m chonoi.live --mode gather --inventory-out kho.json` rồi `python3 -m chonoi.live --mode quan --inventory kho.json`.
+Headless (Test Contract v1.0): `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl [--scenario ..] [--inputs ..] [--inventory ..] [--inventory-out ..]`.
+
+## Điều khiển
+
+| Phím | Sáng (lặn) | Tối (quán) |
+|---|---|---|
+| WASD / mũi tên | bơi (S = lặn xuống) | đi lại |
+| E | hái bông ở mặt nước · cập bến (kết thúc buổi) | nấu ở bếp · bưng món · phục vụ ở bàn |
+| Space | bắt đàn cá (khi ở dưới nước) | — |
+| Enter / E (lúc hết buổi) | sang buổi tối | ra chợ sắm đồ |
+| 1–6 (ở chợ) | mua nâng cấp | |
+| N (màn tiêu đề) | chơi mới từ ngày 1 | |
+| R / M | chơi lại buổi · tắt/bật tiếng | |
+
+## Luật chính và cách tính điểm
+
+- **Sáng:** oxy 30 s, chỉ giảm khi ở dưới nước (d > 0.5 m) và hồi rất nhanh khi lên mặt nước. Hết oxy thì cứ đủ 60 tick lại mất 1 Máu (có 3 Máu). Hết Máu thì **ngất**: mất cả giỏ, kho rỗng. Giỏ chứa 12 ô. Bông điên điển và bông súng hái ở mặt nước, mọc lại sau 20 s. Một đàn cá linh cho 3 con, một đàn cá lóc cho 1 con, hồi chiêu bắt 0.5 s. Cập bến hoặc hết 3 phút thì giỏ được ghi ra file kho.
+- **Tối:** khách đầu tiên đến ở tick 120, sau đó mỗi 15 s một khách nếu bàn T1 còn trống. Khách gọi ngẫu nhiên (theo seed) một món nấu được từ kho, và **giữ chỗ** nguyên liệu ngay lúc gọi. Quy trình: nấu ở B1 → bưng → phục vụ trước khi khách hết kiên nhẫn (60 s). Khách ăn 10 s rồi trả tiền. Phục vụ khi khách còn ≥ 50% kiên nhẫn thì được boa `floor(giá × 0.2)` và +0.2 uy tín. Khách bỏ về làm uy tín −0.5. Tất cả số lấy từ `game.contract.json`.
+- **Điểm** = `earned + 100 × floor(uy tín)` (tiền tính bằng nghìn đồng).
+
+| Món | Công thức | Nấu | Giá |
+|---|---|---|---|
+| Cá lóc nướng trui | cá lóc ×1 | 6 s | 60k |
+| Gỏi bông súng | bông súng ×2 | 4 s | 40k |
+| Lẩu cá linh bông điên điển | cá linh ×3 + bông điên điển ×1 | 10 s | 120k |
+
+Hợp đồng file kho và danh sách sự kiện: [`docs/contracts/README.md`](docs/contracts/README.md). PRD: [`docs/prd/PRD-0.md`](docs/prd/PRD-0.md).
+
+## Sáng tạo của nhóm
+
+Mọi phần dưới đây chỉ nằm ở cửa sổ chơi (`chonoi/play.py`, `chonoi/web/index.html`). Headless **không** dùng chúng, nên tick, sự kiện, tiền, uy tín và snapshot vẫn đúng contract.
+
+- **Chiến dịch 10 ngày** (`python3 -m chonoi.play`): màn tiêu đề → mỗi ngày gồm buổi sáng lặn, buổi tối mở quán và ghé chợ sắm đồ → kết thúc sau ngày 10. Mục tiêu là đủ 2000k tiền thuốc cho Má Tư, có 3 kết thúc tùy tổng thu và uy tín. Mỗi ngày có tên và thoại riêng.
+  - Kho chuyển sang quán qua đúng file kho (`saves/kho.json`, Contract G). Uy tín mang sang ngày sau qua `scenario.quan.reputation`.
+  - Mỗi ngày bố trí cá và bông khác nhau (tất định theo seed, vẫn qua kiểm scenario). Khách tới dày hơn và mau sốt ruột hơn.
+  - Chợ có 6 nâng cấp, mỗi món 3 cấp: bình oxy, giỏ lưới, chân vịt, vợt, bếp lò, ghế đẩu. Nâng cấp chỉ sửa một bản sao tuning và vẫn phải qua `validate_tuning`.
+  - Tiến trình được lưu trong `saves/campaign.json`; mở lại sẽ chơi tiếp được.
+- **Đồ họa pixel-art vẽ bằng code, không dùng asset ngoài:** thế giới được vẽ ở 1/3 độ phân giải rồi phóng to không làm mịn, HUD giữ sắc nét. Vùng sâu tối dần và có đèn đội đầu soi đường. Có ghe chợ nổi treo cây bẹo, khạp sành và xuồng chìm dưới đáy. Bình minh chuyển dần sang trưa, nước phù sa có tia nắng, bờ dừa nước và nhà sàn trôi parallax, lục bình trôi, đàn cá lượn. Út Sen mặc áo bà ba, quấn khăn rằn, đeo kính lặn tự chế. Nhà bè buổi tối có đèn dây vàng, đèn lồng, bếp than có khói.
+- **HUD đầy đủ:** bình oxy, tim Máu, thước độ sâu, giỏ có icon, gợi ý phím theo ngữ cảnh, cảnh báo đỏ khi sắp hết oxy. Bên quán có phiếu gọi món kèm thanh kiên nhẫn, kho khả dụng / đang giữ, trạng thái bếp, món trên tay, thực đơn, sao uy tín.
+- Thoại giọng Nam Bộ của Má Tư, chữ bay, tiền rơi, âm thanh tự tạo bằng WebAudio.
+- **Bằng chứng lõi vẫn đúng:** `tests/test_smoke_p1.py` và `tests/test_rules_p1.py` chạy hộp đen qua headless. `tests/test_play.py` chạy đủ 10 ngày, kiểm chợ, lưu/tải, tuning và bố trí từng ngày đều hợp lệ, kho đi qua đúng file kho.
+
+---
+
+# Day 12 — AI SDLC: Quán Ăn Chợ Nổi (đề lab)
 
 > **Làm theo nhóm 4–6 người** · Dùng AI để xây game 2D qua **4 phase** trong **3 giờ**: Út Sen lặn bắt cá, hái rau trên mặt nước rồi tối mở quán phục vụ khách.
 > **Yêu cầu từng phase mở đúng mốc giờ tại lab board:** **[Chợ Nổi Lab](https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg)** (cần đăng nhập claude.ai; có trợ giảng AI cho từng phase).
@@ -26,14 +83,6 @@ Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headl
 ## Tự do sáng tạo
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
-
-## Sáng tạo của nhóm
-
-- **MR-1 — Cảm hứng *Dave the Diver* phiên bản Chợ Nổi Miền Tây** (Nguyễn Thanh Tùng — Content Lead):
-  - **Sổ tay Tầng nước, Thủy quái & Thực đơn 6 món** (`chonoi/content/dave_theme.py`, `docs/content/dave-the-diver-concept.md`): Phân tầng độ sâu sông Chín Khúc cho đủ 6 nguyên liệu Phase 2 (`bong_dien_dien`, `bong_sung`, `keo_neo`, `ca_linh`, `ca_loc`, `ca_keo`), sổ tay 3 sinh vật đặc biệt (`ca_sau`, `ran`, `ca_ho`), thực đơn 6 món kiểu *Bancho Sushi*, lời dặn 5 Ngày (D1–D5), mô tả Shop/Chợ Chú Sáu và hệ thống lời thoại giọng Nam Bộ phản ứng theo từng sự kiện.
-  - **Chợ Nổi Review (`ServiceReviewTracker`)**: Lấy cảm hứng từ app *Cooksta* trong *Dave the Diver*, chấm chuỗi phục vụ có boa (Tip Streak), ảnh Cá Hô (`photo`), trừ điểm cháy món (`dish_burnt`) và xếp hạng 1★–5★ chỉ bằng cách đọc dòng event.
-  - **Mở rộng Cháy món (`burn`)**: Hỗ trợ `burn_s` trong `chonoi/sim/quan.py` (tắt khi `burn_s: null` trong lõi, hoạt động đúng chuẩn `ready_ticks > 1200` khi bật mở rộng).
-  - **Bằng chứng lõi vẫn đúng**: Toàn bộ `chonoi/content/` tách biệt khỏi `chonoi/sim/*` và tắt mặc định ở chế độ headless (`enabled=False`). Kết quả chạy `python -m unittest tests.test_quan_lat4 tests.test_quan_p2 tests.test_python_starter_units tests.test_team_check -v` đạt 28/28 test pass (xem `docs/proof/phase-2/quan-p2.md` và `docs/verification/phase-2.md`).
 
 ## Lịch 3 giờ
 

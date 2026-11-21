@@ -5,7 +5,9 @@
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
-- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
+- Chơi liền mạch sáng → tối: `python3 -m chonoi.play` (WASD, E, Space, Enter, R, M)
+- Chơi thử từng buổi: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
+- PRD/ticket theo phase: `docs/prd/` · hợp đồng kho + sự kiện: `docs/contracts/README.md`
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
@@ -26,7 +28,5 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- `inventory-handoff-smoke`: dùng khi kiểm tra bàn giao `gather → kho.json → quan`; chạy script độc lập, không sửa contract hay fixture khóa.
-  - Lệnh: `python3 .agents/skills/inventory-handoff-smoke/scripts/run_smoke.py`
-- `verify-phase-change`: dùng trước commit/push hoặc khi thu bằng chứng cho một phase; đọc diff, chạy toàn bộ test và ghi kết quả trung thực vào `docs/proof/`.
-  - Lệnh test chuẩn: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
+- `.agents/skills/rule-check/`: đối chiếu thay đổi luật với PRD/ticket trước khi code (khi nhận ticket mới hoặc change request).
+- `.agents/skills/headless-smoke/`: chạy toàn bộ test, smoke hai tiến trình và kiểm tất định trước khi commit hoặc gắn tag.

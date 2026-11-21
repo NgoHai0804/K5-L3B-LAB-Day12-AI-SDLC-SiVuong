@@ -1,0 +1,6 @@
+﻿Validation before upload to QuyAnh (2026-11-21)
+Command: $env:PYTHONPATH="tests;."; python -m unittest discover -s tests -v
+Exit code: 0. Result: 87 tests passed in 54.114s.
+Two-process inventory smoke: test_inv_01_gather_writes_inventory_quan_reads_it passed (contract v1.2 individual items).
+Determinism: test_con_02_deterministic_bytes and test_day_same_seed_same_bytes passed.
+The skill's legacy count-inventory fixture is superseded by the current v1.2 integration fixture.
