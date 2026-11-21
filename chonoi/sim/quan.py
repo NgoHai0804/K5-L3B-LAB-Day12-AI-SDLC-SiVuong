@@ -15,6 +15,12 @@ Thứ tự một bước (Ticket-03, Quán):
      (của kế hoạch Ngày nếu chạy day) đủ nguyên liệu KHẢ DỤNG (chưa ươn, chưa bị giữ); không có -> no_dish.
 
 Kho `stock` là danh sách cá thể vật lý {id, kind, fresh} (gồm phần đang giữ). Giữ chỗ theo id cá thể.
+
+Sáng tạo (CHỈ khi truyền `extras`, headless không truyền):
+  - `extras.early_close`: cạnh `close_shift` khi quán không còn khách -> đóng ca sớm, quan_end reason "early".
+  - `extras.collide`: không đi xuyên bếp/quầy (hộp chặn quanh vị trí), chỉ chặn trục bị va.
+  - `extras.prep`: `inp.prep = {stove_id, quality ∈ [0,1]}` (minigame băm/chặt ở client) cho món đang nấu
+    -> bớt tối đa 40% thời gian nấu, mỗi món một lần, phát `prep_done`.
 """
 
 import math
@@ -43,7 +49,8 @@ class QuanSim:
     phase = "quan"
 
     def __init__(self, tuning, scenario, streams, ids, inventory=None, plan_dishes=None,
-                 money=0, earned=0, reputation=None):
+                 money=0, earned=0, reputation=None, extras=None):
+        self.extras = extras or {}
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
@@ -279,12 +286,17 @@ class QuanSim:
             if s["state"] == "cooking" and s["cook_ticks_left"] == 0:
                 s["state"], s["ready_ticks"] = "ready", 0
                 events.append(("dish_ready", self._dish_data(s)))
+        # 3b. (sáng tạo) sơ chế nhanh
+        prep = getattr(inp, "prep", None)
+        if self.extras.get("prep") and isinstance(prep, dict):
+            self._prep(prep, events)
         # 4. di chuyển rồi tối đa một interact
         self._move(inp)
         if inp.pressed("interact"):
             self._interact(events)
         # 5. thanh toán / khách rời / đóng ca
-        closing = self.time_left_ticks <= 0
+        early = (self.extras.get("early_close") and inp.pressed("close_shift") and not self.customers)
+        closing = self.time_left_ticks <= 0 or early
         for tb in self.tables:
             c = self._at_table(tb["id"])
             if c is None:
@@ -303,14 +315,29 @@ class QuanSim:
             for s in self.stoves:
                 s.update(state="idle", dish=None, cook_ticks_left=0, ready_ticks=0)
             self.hand = None
-            self.done, self.reason = True, "time"
-            events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
+            reason = "time" if self.time_left_ticks <= 0 else "early"
+            self.done, self.reason = True, reason
+            events.append(("quan_end", {"reason": reason, "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
             return events
         # 6. khách mới theo lịch
         if self.random_customers and self._customer_due():
             self._spawn(events)
         return events
+
+    def _prep(self, prep, events):
+        st = next((s for s in self.stoves if s["id"] == prep.get("stove_id")), None)
+        q = prep.get("quality")
+        if st is None or st["state"] != "cooking" or st.get("_prepped") or not isinstance(q, (int, float)):
+            return
+        q = min(1.0, max(0.0, float(q)))
+        total = _ticks(self.menu[st["dish"]["dish_id"]]["cook_s"])
+        saved = min(st["cook_ticks_left"] - 1, int(total * 0.4 * q))
+        st["_prepped"] = True
+        if saved > 0:
+            st["cook_ticks_left"] -= saved
+        events.append(("prep_done", {"stove_id": st["id"], "dish_id": st["dish"]["dish_id"], "quality": round(q, 2),
+                                     "saved_ticks": max(0, saved)}))
 
     def _decay(self, events):
         spoiled = []
@@ -463,10 +490,26 @@ class QuanSim:
         mx, mz = inp.move
         self.vel = ramp_velocity(self, (mx * speed, mz * speed), int(self.t.get("ramp_max_ticks", 6)))
         b = self.t["bounds"]
+        boxes = self._obstacles() if self.extras.get("collide") else ()
         for i, axis in enumerate(("x", "z")):
+            old = self.pos[i]
             self.pos[i] += self.vel[i] / TICK
             lo, hi = b[axis]
             if self.pos[i] <= lo:
                 self.pos[i], self.vel[i] = lo, max(0.0, self.vel[i])
             elif self.pos[i] >= hi:
                 self.pos[i], self.vel[i] = hi, min(0.0, self.vel[i])
+            if boxes and any(self._inside(bx) for bx in boxes):
+                self.pos[i], self.vel[i] = old, 0.0
+
+    # hộp chặn (nửa rộng x, nửa sâu z) + bán kính người chơi; vẫn trong tầm tương tác 1.5 m
+    STOVE_HALF, COUNTER_HALF, BODY = (1.1, 0.4), (1.45, 0.4), 0.25
+
+    def _obstacles(self):
+        out = [(s["pos"], self.STOVE_HALF) for s in self.stoves]
+        out += [(t["pos"], self.COUNTER_HALF) for t in self.tables]
+        return out
+
+    def _inside(self, box):
+        (cx, cz), (hx, hz) = box
+        return abs(self.pos[0] - cx) < hx + self.BODY and abs(self.pos[1] - cz) < hz + self.BODY

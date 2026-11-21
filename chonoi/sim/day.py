@@ -145,8 +145,11 @@ class DaySim:
         return self.day_tuning(self.day, dict(self.active)) if self.day_tuning else self.base_tuning
 
     def plan_today(self):
-        p = self.plan[(self.day - 1) % len(self.plan)]
+        p = self._plan_entry()
         return {"dishes": dict(p["dishes"]), "ingredients": dict(p["ingredients"])}
+
+    def _plan_entry(self):
+        return self.plan[(self.day - 1) % len(self.plan)]
 
     def _active_values(self):
         out = {}
@@ -182,8 +185,9 @@ class DaySim:
         if "stock" in self.quan_tpl or "reputation" in self.quan_tpl:
             raise BadInput("chạy day không nhận quan.stock / quan.reputation")
         self.sub = QuanSim(t, self.quan_tpl, self.rng, self.ids, inventory=inventory,
-                           plan_dishes=list(self.plan[(self.day - 1) % len(self.plan)]["dishes"]),
-                           money=self.money, earned=self.earned, reputation=self.reputation)
+                           plan_dishes=list(self._plan_entry()["dishes"]) + [
+                               d for d in (self.extras or {}).get("extra_dishes", ()) if d in t["menu"]],
+                           money=self.money, earned=self.earned, reputation=self.reputation, extras=self.extras)
         out.append(("quan", "phase_start", {}))
 
     # --- một bước --------------------------------------------------------------------------

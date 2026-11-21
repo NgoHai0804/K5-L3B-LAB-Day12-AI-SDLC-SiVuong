@@ -17,15 +17,17 @@ from .errors import BadInput
 
 BUTTONS_V10 = ("interact", "catch")
 BUTTONS = ("interact", "catch", "pause", "shop_done")
-LIVE_BUTTONS = BUTTONS + ("sprint",)
+LIVE_BUTTONS = BUTTONS + ("sprint", "close_shift")
 
 
 class InputState:
-    def __init__(self, move, held, edges, buy=None):
+    def __init__(self, move, held, edges, buy=None, drop=None, prep=None):
         self.move = move
         self.held = held
         self._edges = edges
         self.buy = buy
+        self.drop = drop  # bản chơi: id cá thể / True
+        self.prep = prep  # bản chơi: {stove_id, quality}
 
     def pressed(self, name: str) -> bool:
         return name in self._edges
@@ -123,6 +125,8 @@ class LiveInputs:
         self._held = {b: False for b in buttons}
         self._pending = set()
         self._buy = None
+        self._drop = None
+        self._prep = None
 
     def set(self, move=None, **buttons):
         if move is not None:
@@ -142,7 +146,15 @@ class LiveInputs:
     def buy(self, action):
         self._buy = action
 
+    def drop(self, which):
+        self._drop = which
+
+    def prep(self, data):
+        self._prep = data
+
     def advance(self) -> InputState:
         edges, self._pending = self._pending, set()
         buy, self._buy = self._buy, None
-        return InputState(self._move, dict(self._held), edges, buy)
+        drop, self._drop = self._drop, None
+        prep, self._prep = self._prep, None
+        return InputState(self._move, dict(self._held), edges, buy, drop, prep)

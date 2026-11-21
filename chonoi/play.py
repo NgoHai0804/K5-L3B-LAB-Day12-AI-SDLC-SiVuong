@@ -23,6 +23,7 @@ import argparse
 import copy
 import json
 import os
+import random
 import sys
 import threading
 import time
@@ -48,14 +49,53 @@ GEAR = {
 }
 CORE_NAMES = {"oxygen": ("Bình oxy", "oxy tối đa"), "hp": ("Áo phao", "thêm Máu")}
 
+# Món phụ của quán (sáng tạo): ít nguyên liệu, nấu nhanh, giá rẻ -> khách gọi đa dạng hơn.
+EXTRA_DISHES = {
+    "ca_linh_chien": {"recipe": {"ca_linh": 1}, "cook_s": 3, "price": 30},
+    "bong_sung_xao": {"recipe": {"bong_sung": 1}, "cook_s": 3, "price": 25},
+    "dien_dien_xao_trung": {"recipe": {"bong_dien_dien": 1}, "cook_s": 3, "price": 30},
+    "keo_neo_luoc": {"recipe": {"keo_neo": 1}, "cook_s": 3, "price": 25},
+    "chao_ca_loc": {"recipe": {"ca_loc": 1}, "cook_s": 5, "price": 45},
+    "ca_keo_kho": {"recipe": {"ca_keo": 1}, "cook_s": 5, "price": 40},
+}
+KIND_NAME = {"ca_loc": "cá lóc", "ca_linh": "cá linh", "ca_keo": "cá kèo", "bong_dien_dien": "bông điên điển",
+             "bong_sung": "bông súng", "keo_neo": "kèo nèo"}
+DISH_NAME = {"ca_loc_nuong_trui": "cá lóc nướng trui", "goi_bong_sung": "gỏi bông súng",
+             "lau_ca_linh_dien_dien": "lẩu cá linh", "canh_chua_ca_loc": "canh chua cá lóc",
+             "ca_keo_nuong": "cá kèo nướng", "lau_mam": "lẩu mắm"}
+
+
+def make_quests(seed, day, plan):
+    """3 nhiệm vụ phụ ngẫu nhiên (tất định theo seed + Ngày), có thưởng tiền khi xong."""
+    rng = random.Random(f"{seed}:quest:{day}")
+    pool = []
+    for k in ("ca_linh", "ca_loc", "ca_keo"):
+        n = rng.choice((2, 3))
+        pool.append({"type": "catch", "kind": k, "n": n, "reward": 25 + 10 * n, "text": f"Bắt {n} đàn {KIND_NAME[k]}"})
+    for k in ("bong_dien_dien", "bong_sung", "keo_neo"):
+        n = rng.choice((2, 3, 4))
+        pool.append({"type": "gather", "kind": k, "n": n, "reward": 15 + 8 * n, "text": f"Hái {n} {KIND_NAME[k]}"})
+    n = rng.choice((3, 4, 5))
+    pool.append({"type": "serve", "n": n, "reward": 10 * n + 20, "text": f"Phục vụ {n} khách"})
+    n = rng.choice((2, 3))
+    pool.append({"type": "tips", "n": n, "reward": 20 * n, "text": f"Được {n} khách boa"})
+    pool.append({"type": "deep", "n": 25, "reward": 40, "text": "Lặn xuống sâu 25 m"})
+    pool.append({"type": "no_hit", "reward": 50, "text": "Không bị Cá Sấu đớp", "end": "gather"})
+    pool.append({"type": "no_left", "reward": 60, "text": "Không để khách nào bỏ về", "end": "quan"})
+    pool.append({"type": "fresh", "n": 2, "reward": 45, "text": "Nấu 2 món nguyên liệu tươi rói (≥ 95%)"})
+    dish = rng.choice(sorted(plan["dishes"]))
+    pool.append({"type": "dish", "dish": dish, "n": 1, "reward": 35, "text": f"Bán được 1 {DISH_NAME.get(dish, dish)}"})
+    picked = rng.sample(pool, 3)
+    for i, q in enumerate(picked):
+        q.update(id=f"Q{i + 1}", done=False, failed=False, progress=0)
+    return picked
+
 
 _TUNING_CACHE = {}
 
 
 def day_tuning(base, day, gear):
-    """Tuning của Ngày `day` với đồ nghề `gear` (bản sao; vẫn hợp lệ theo contract)."""
-    if not any(gear.values()):
-        return base
+    """Tuning của Ngày `day` với đồ nghề `gear` + món phụ (bản sao; phần lõi vẫn qua validate_tuning)."""
     key = (id(base), tuple(sorted(gear.items())))
     if key not in _TUNING_CACHE:
         _TUNING_CACHE[key] = _make_tuning(base, gear)
@@ -73,10 +113,14 @@ def _make_tuning(base, gear):
         d["cook_s"] = round(d["cook_s"] * (1 - 0.2 * gear.get("bep", 0)), 2)
     q["patience_s"] = q["patience_s"] + 10 * gear.get("ghe", 0)
     validate_tuning(t)
+    for k, d in EXTRA_DISHES.items():  # món phụ thêm SAU khi kiểm (contract lõi cố định đúng 6 món)
+        t["menu"][k] = dict(d, cook_s=round(d["cook_s"] * (1 - 0.2 * gear.get("bep", 0)), 2))
     return t
 
 
 class CampaignGame(LiveGame):
+    EXTRAS = dict(LiveGame.EXTRAS, extra_dishes=tuple(EXTRA_DISHES))
+
     def __init__(self, tuning, seed, save_dir):
         self.base_tuning = tuning
         self.base_seed = seed
@@ -144,7 +188,9 @@ class CampaignGame(LiveGame):
         sim = self.session.sim
         return {"day": sim.day, "money0": sim.money, "earned0": sim.earned, "rep0": sim.reputation,
                 "fish_caught": 0, "gather": 0, "served": 0, "left": 0, "no_dish": 0, "tips": 0, "choke": 0,
-                "monster_hit": 0, "spoiled": 0, "dishes": {}, "inventory": []}
+                "monster_hit": 0, "spoiled": 0, "dishes": {}, "inventory": [], "caught": {}, "picked": {},
+                "tip_count": 0, "max_depth": 0.0, "fresh_cooks": 0, "quest_reward": 0,
+                "quests": make_quests(self.base_seed, sim.day, sim.plan_today())}
 
     def _snapshot_start(self):
         sim = self.session.sim
@@ -165,10 +211,23 @@ class CampaignGame(LiveGame):
         self.events.extend(rows)
         del self.events[:-RECENT_EVENTS]
         td = self.today
+        sub = self.session.sim.sub
+        if sub.phase == "gather":
+            td["max_depth"] = max(td["max_depth"], sub.pos[1])
         for r in rows:
             n, d = r["name"], r["data"]
             if n in ("fish_caught", "gather", "choke", "monster_hit", "spoiled", "no_dish"):
                 td[n] += 1
+            if n == "fish_caught":
+                td["caught"][d["kind"]] = td["caught"].get(d["kind"], 0) + 1
+            elif n == "gather":
+                td["picked"][d["kind"]] = td["picked"].get(d["kind"], 0) + d["amount"]
+            elif n == "dropped":
+                td["picked"][d["kind"]] = max(0, td["picked"].get(d["kind"], 0) - 1)
+            elif n == "cook_started":
+                price = self.session.sim.tuning["menu"][d["dish_id"]]["price"]
+                if d["base_price"] * 100 >= price * 95:
+                    td["fresh_cooks"] += 1
             elif n == "served":
                 td["served"] += 1
                 td["dishes"][d["dish_id"]] = td["dishes"].get(d["dish_id"], 0) + 1
@@ -176,9 +235,11 @@ class CampaignGame(LiveGame):
                 td["left"] += 1
             elif n == "paid":
                 td["tips"] += d["tip"]
+                td["tip_count"] += 1 if d["tip"] > 0 else 0
             elif n == "gather_end":
                 td["gather_reason"] = d["reason"]
                 td["inventory"] = d["inventory"]["items"]
+                self._quests_end("gather")
             elif n == "phase_start" and r["phase"] == "quan":
                 self.stage = "eveningintro"
             elif n == "phase_start" and r["phase"] == "shop":
@@ -188,18 +249,52 @@ class CampaignGame(LiveGame):
                 self._snapshot_start()
                 self.today = self._new_today()
                 self.intro_ticks = 0
-                self.stage = "dayintro"
+                self.stage = "story"
                 self._save()
+        if rows or sub.phase == "gather":
+            self._quests_progress()
         if self.session.done:
             self.stage = "ending"
             self._save(finished=True)
 
+    # --- nhiệm vụ phụ -------------------------------------------------------------------------------
+    def _quests_progress(self):
+        td = self.today
+        vals = {"catch": lambda q: td["caught"].get(q.get("kind"), 0),
+                "gather": lambda q: td["picked"].get(q.get("kind"), 0),
+                "serve": lambda q: td["served"], "tips": lambda q: td["tip_count"],
+                "deep": lambda q: int(td["max_depth"]), "fresh": lambda q: td["fresh_cooks"],
+                "dish": lambda q: td["dishes"].get(q.get("dish"), 0)}
+        for q in td.get("quests", []):
+            if q["done"] or q["failed"]:
+                continue
+            t = q["type"]
+            if t not in vals:
+                if (t == "no_hit" and td["monster_hit"]) or (t == "no_left" and td["left"]):
+                    q["failed"] = True
+                continue
+            q["progress"] = min(q["n"], vals[t](q))
+            if q["progress"] >= q["n"]:
+                q["done"] = True
+
+    def _quests_end(self, phase):
+        self._quests_progress()
+        for q in self.today.get("quests", []):
+            if q.get("end") == phase and not q["failed"]:
+                q["done"] = True
+
     def _close_day(self):
         sim = self.session.sim
         td = self.today
+        self._quests_end("quan")
+        reward = sum(q["reward"] for q in td.get("quests", []) if q["done"])
+        if reward:  # thưởng nhiệm vụ (sáng tạo): cộng vào ví và tổng thu trước khi mở Shop
+            sim.money += reward
+            sim.earned += reward
+        td["quest_reward"] = reward
         td.update(money=sim.money - td["money0"], earned=sim.earned - td["earned0"], reputation=sim.reputation)
         self.history.append({k: td[k] for k in ("day", "money", "earned", "reputation", "served", "left", "tips",
-                                                 "dishes")})
+                                                 "dishes", "quest_reward")})
 
     # --- chuyển màn ---------------------------------------------------------------------------------
     def next_stage(self):
@@ -211,6 +306,8 @@ class CampaignGame(LiveGame):
                 else:
                     self._fresh_state()
                     self._reset()
+                self.stage = "story"
+            elif st == "story":
                 self.stage = "dayintro"
             elif st == "dayintro":
                 self.stage = "gather"
@@ -246,7 +343,7 @@ class CampaignGame(LiveGame):
             self._fresh_state()
             self.saved = None
             self._reset()
-            self.stage = "dayintro"
+            self.stage = "story"
 
     def to_menu(self):
         with self._lock:
