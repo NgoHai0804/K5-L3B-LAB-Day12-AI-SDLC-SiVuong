@@ -18,6 +18,7 @@
 | Trợ năng: 3 cảnh báo + tương phản cao + phụ đề SFX (`web/index.html`) | buiquyanh9-ai | AC-P4-06,07 | snapshot sáng/tối |
 | `tests/test_phase4.py`, proof ảnh `docs/proof/phase-4/`, `TEAM.md` | wewewewe07 | AC-P4-08 | các mục trên |
 | Contract v1.3 + tag `phase-4` + Release `v1.0.0` | NgoHai0804 | AC-P4-01,08 | tất cả |
+| Gộp bản chơi cuối (extras: drop/early_close/prep/collide, món phụ, nhiệm vụ) — chỉ cửa sổ chơi | buiquyanh9-ai | AC-P4-09 | các mục trên |
 
 ## Bằng chứng bắt buộc
 - `docs/proof/phase-4/bench.json` (5 trường), `soak.json` (`days_completed == days`, `crashes == 0`), ảnh `warn_*`/`subtitle_soundoff.png`.

@@ -65,7 +65,7 @@ Hợp đồng file kho và danh sách sự kiện: [`docs/contracts/README.md`](
 
 ## Sáng tạo của nhóm
 
-Lõi chạy theo **Test Contract v1.3** (Phase 2 số chuẩn + vòng Ngày, Phase 3 kho cá thể và độ tươi, Phase 4 bench/soak/bảng xếp hạng). Mọi phần dưới đây chỉ nằm ở cửa sổ chơi (`chonoi/play.py`, `chonoi/web/index.html`, `extras` của `GatherSim`). Headless **không** bật chúng, nên tick, sự kiện, tiền, uy tín và snapshot vẫn đúng contract.
+Lõi chạy theo **Test Contract v1.3** (Phase 2 số chuẩn + vòng Ngày, Phase 3 kho cá thể và độ tươi, Phase 4 bench/soak/bảng xếp hạng). Mọi phần dưới đây chỉ nằm ở cửa sổ chơi (`chonoi/play.py`, `chonoi/web/index.html`, `extras` của `GatherSim`/`QuanSim`). Headless **không** bật chúng, nên tick, sự kiện, tiền, uy tín và snapshot vẫn đúng contract.
 
 - **Mùa nước nổi 5 Ngày** (`python3 -m chonoi.play`): chạy đúng `DaySim` của `--mode day`. Menu (Chơi / Thoát) → DayIntro (Má Tư đọc món và nguyên liệu, tự chuyển sau 4 s) → sáng lặn → EveningIntro (nhập kho, món nấu được) → tối mở quán → DayResult → Shop → Ngày kế → Tổng kết (tổng tiền, điểm, uy tín, món bán chạy). Esc/P tạm dừng bằng `pause` của sim (dừng mọi timer, kể cả Shop). Mỗi Ngày có tên và thoại riêng, mục tiêu 1500k tiền thuốc cho Má Tư. Tiến trình lưu ở ranh giới Ngày (`saves/campaign.json`).
 - **Sprint** (giữ Shift khi lặn): bơi ×1.5, oxy dưới nước tốn ×1.5, tiêu thanh **Sức** (đủ khoảng 3 s); hết Sức thì phải hồi tới 30% mới sprint lại. Chỉ bật qua `LiveGame.EXTRAS`; `tests/test_play.py` kiểm headless không có sprint.

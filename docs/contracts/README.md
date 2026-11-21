@@ -67,4 +67,6 @@
 | `bought` / `buy_failed` | `upgrade,level,price,money` / `action,reason`(`funds`/`max_level`/`unknown`) |
 | `shop_end` | `reason`(`done`/`time`) |
 
+**Chỉ ở cửa sổ chơi (`extras`; headless không phát):** `dropped`, `prep_done`, và `quan_end` với `reason:"early"`.
+
 Khi đổi hợp đồng: báo cả nhóm và ghi lý do (ADR trong `docs/adr/`).

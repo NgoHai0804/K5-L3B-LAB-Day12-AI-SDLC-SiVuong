@@ -8,7 +8,7 @@
 - Bảng xếp hạng (chỉ `--mode day` đủ 5 Ngày chuẩn, không scenario): `python3 -m chonoi.headless --mode day --days 5 --seed 42 --ticks 200000 --leaderboard leaderboard.json --player-name "Út Sen" --out out.jsonl`
 - Bench có render: `python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json` (5 trường: avg_fps, p1_low_fps, frames, measured_s, load_ms)
 - Soak nhiều Ngày: `python3 -m chonoi.soak --seed 7 --days 10 --out soak.json` (đạt khi days_completed == days và crashes == 0)
-- Chơi trọn 5 Ngày: `python3 -m chonoi.play` (WASD, Shift sprint, E, Space, Esc/P, Enter, 1–7, R, M, H tương phản cao)
+- Chơi trọn 5 Ngày: `python3 -m chonoi.play` (WASD, Shift sprint, E, Space, Esc/P, Enter, 1–7, R, M, H tương phản cao, Q thả đồ, C đóng quán sớm, minigame sơ chế S/↓ · Space/E · A↔D)
 - Xuất bảng xếp hạng: `python3 -m chonoi.play --export-leaderboard bang-xep-hang.json`
 - Chơi thử từng buổi: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 - PRD/ticket theo phase: `docs/prd/` · hợp đồng kho + sự kiện: `docs/contracts/README.md`
