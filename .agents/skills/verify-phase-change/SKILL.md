@@ -16,5 +16,12 @@ Use this after implementing a slice or before pushing it.
 
    In PowerShell, use `$env:PYTHONPATH='tests;.'` for that process and run `python -m unittest discover -s tests -v`.
 3. Run any slice-specific smoke named in `TEAM.md`. Do not change a frozen test or contract to turn a failure green.
+   For Phase 2 changes touching input/ticks/pause, also run:
+
+   ```bash
+   python3 .agents/skills/pause-contract-smoke/scripts/run_smoke.py
+   ```
+
+   For `day`, use `--days 1..5`; never pass inventory flags because they remain exclusive to standalone gather/quan.
 4. Put the command, date, branch/commit, pass/fail counts, and any honest limitation in `docs/proof/phase-<n>/`. Only claim browser/UI verification when it was actually observed.
 5. Review the staged diff before committing. Keep generated JSONL, temporary inventory files, secrets, and local environment files out of the commit.

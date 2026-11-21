@@ -4,8 +4,8 @@
 
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
-- Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
-- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
+- Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`; vòng ngày dùng `--mode day --days 1..5`.
+- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` hoặc `--mode day --days 1`; WASD, E, Space, P/Esc, R.
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
@@ -30,3 +30,5 @@
   - Lệnh: `python3 .agents/skills/inventory-handoff-smoke/scripts/run_smoke.py`
 - `verify-phase-change`: dùng trước commit/push hoặc khi thu bằng chứng cho một phase; đọc diff, chạy toàn bộ test và ghi kết quả trung thực vào `docs/proof/`.
   - Lệnh test chuẩn: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
+- `pause-contract-smoke`: dùng khi sửa input, tick loop, pause hoặc Shop để kiểm tra đóng băng và resume đúng Contract v1.1.
+  - Lệnh: `python3 .agents/skills/pause-contract-smoke/scripts/run_smoke.py`
