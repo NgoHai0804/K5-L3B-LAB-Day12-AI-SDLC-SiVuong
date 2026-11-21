@@ -44,6 +44,8 @@ flowchart LR
   - **Fallback:** không có `--inventory` thì dùng `scenario.stock`.
   - **Mâu thuẫn:** có **cả** `--inventory` **và** `scenario.stock` ⇒ **thoát 2**.
   - Sai schema (thiếu `items`, có khóa lạ), `kind` lạ, số âm, số không phải `int` ⇒ **thoát 2**.
+  - **Trần giỏ (`hold_capacity`) KHÔNG áp lên kho quán** — kho lớn hơn sức chứa giỏ vẫn hợp lệ.
+  - **Quán độc lập** (thiếu cả `--inventory` và `scenario.quan.stock`) ⇒ kho **rỗng**; `money`/`earned` đầu lượt = 0; uy tín theo tuning (trừ khi scenario khai).
 - Mẫu hợp lệ: [`inventory.sample.json`](inventory.sample.json).
 
 **Ngoài phạm vi P1 (ghi nhận để không giẫm chân):** id nguyên liệu **mới** do sáng tạo (phase sau) phải khai
@@ -58,6 +60,8 @@ báo **trước** cho cả hai team + thêm vào `KINDS`/`game.contract.json`; k
   `{"move":[a,b], "interact":bool, "catch":bool}`, với `a,b ∈ [-1,1]` (đã chuẩn hóa, đi chéo không nhanh hơn).
 - **Headless** nhận cùng thông tin qua file `--inputs`: `{"frames":[{"tick":int,"move":[a,b],"interact":bool,"catch":bool}]}`.
   - `move` kế thừa giá trị cũ khi vắng frame; nút chỉ kích khi **cạnh lên** (false→true).
+  - Thành phần thứ hai dương = **xuống** (gather `[x,d]`) · **về bắc** (quan `[x,z]`).
+  - `interact` = cập bến/hái (gather) · nấu/bưng/phục vụ (quan); `catch` = bắt cá (gather). Hành động đúng kiểu nhưng **sai pha bị bỏ qua**.
   - Nút hợp lệ **v1.0** = `interact`, `catch` (nút khác như `jump`,`attack` ⇒ **thoát 2**).
 - **Vỏ snapshot dùng chung (cả 2 mode):**
   `type,"tick","sim_tick","mode","phase","phase_tick","state","time_left_ticks","money","earned","reputation","score"`,
@@ -68,11 +72,13 @@ báo **trước** cho cả hai team + thêm vào `KINDS`/`game.contract.json`; k
 
 ## 3. Trường snapshot theo mode
 
-**gather** — `player{pos,vel,heading_deg,oxygen_ticks,oxygen_max_ticks,hp,hp_max,zero_oxy_ticks,invuln_ticks,catch_cd_ticks,at_surface}`
-· `hold` · `hold_count` · `hold_capacity` · `nodes[]{id,pos,kind,ready,regrow_ticks}` · `fish[]{id,pos,kind,heading_deg}`.
+**gather** — `player{pos, vel, heading_deg, oxygen_ticks, oxygen_max_ticks, hp, hp_max, zero_oxy_ticks, catch_cd_ticks, at_surface}`
+· `hold` · `hold_count` · `hold_capacity` · `nodes[]{id,pos,kind,ready,regrow_ticks}` (`ready = regrow_ticks == 0`) · `fish[]{id,pos,kind,heading_deg}`.
+*(starter còn xuất `invuln_ticks`; PRD §D không yêu cầu.)*
 
-**quan** — `player{pos}` · `stock{kind:int}` (chỉ >0) · `hand` · `stoves[]{id,pos,state,dish,cook_ticks_left,ready_ticks}`
-· `tables[]{id,pos,customer_id}` · `customers[]{id,table_id,state,patience_ticks_left,dish,...}`.
+**quan** — `player{pos, vel}` · `stock{kind:int}` · `hand` · `stoves[]{id,pos,state,dish,cook_ticks_left,ready_ticks}`
+· `tables[]{id,pos,customer_id}` (`customer_id` null khi trống) · `customers[]{id,table_id,dish_id,order_tick,state,patience_ticks_left,eat_ticks_left,order_status,reserved,base_price,tip}`.
+**Chỉ liệt kê khách còn ngồi.**
 
 ---
 
@@ -82,23 +88,27 @@ Dòng event: `{"type":"event","tick":k,"phase":...,"name":...,"data":{...}}`. Ai
 
 | Mode | `name` | `data` |
 |---|---|---|
-| gather | `dive` / `surface` | `pos` |
-| gather | `oxygen_empty` | `pos` |
-| gather | `choke` | `hp` |
-| gather | `faint` | `pos` |
-| gather | `gather` | `node_id`, `kind` |
+| gather | `dive` / `surface` | `pos` (sau di chuyển; **chỉ khi đổi phía** biên mặt nước) |
+| gather | `oxygen_empty` | `oxygen_ticks:0` (khi **vừa chạm 0**) |
+| gather | `choke` | `hp` (sau trừ) |
+| gather | `faint` | `cause:"choke"`, `lost`, `hp:0` |
+| gather | `gather` | `node_id`, `kind`, `amount` |
 | gather | `node_regrown` | `node_id` |
-| gather | `hold_full` | `kind` |
-| gather | `fish_caught` | `fish_id`, `kind` |
-| gather | `gather_end` | `reason` (`docked`/`fainted`/`time`/`tick_limit`/`error`), `inventory{items}` |
-| quan | `cook_started` | `stove_id`, `dish` |
-| quan | `dish_ready` | `stove_id`, `dish` |
-| quan | `dish_picked` | `dish` |
-| quan | `served` | `customer_id`, `table_id`, `dish` |
-| quan | `paid` | `customer_id`, `amount`, `tip` |
-| quan | `customer_left` | `customer_id`, `reason` |
-| quan | `no_dish` | `customer_id`, `dish` |
-| quan | `quan_end` | `reason`, `money`, `earned`, `shift_earned`, `reputation` |
+| gather | `hold_full` | `action`(`gather`/`catch`), `node_id` **hoặc** `fish_id`, `required`, `free` |
+| gather | `fish_caught` | `fish_id`, `kind`, `yield` (một event mỗi đàn lấy đủ `yield`) |
+| gather | `gather_end` | `reason`(`time`/`docked`/`fainted`), `inventory` (object theo §1) |
+| quan | `customer_arrived` | `order_id`, `table_id`, `dish_id` |
+| quan | `no_dish` | `{}` (khi có bàn mà thiếu món) |
+| quan | `cook_started` | `stove_id`, `order_id`, `dish_id`, `items`, `base_price` |
+| quan | `dish_ready` | `stove_id`, `order_id`, `dish_id` |
+| quan | `dish_picked` | `stove_id`, `order_id`, `dish_id` |
+| quan | `served` | `order_id`, `table_id`, `dish_id`, `patience_ticks_left`, `base_price`, `tip` |
+| quan | `paid` | `order_id`, `table_id`, `base_price`, `tip`, `amount`, `reason`(`finished_eating`/`closing`) |
+| quan | `customer_left` | `order_id`, `table_id`, `reason`(`patience`/`closing`), `reputation` |
+| quan | `quan_end` | `reason:"time"`, `money`, `earned`, `shift_earned`, `reputation` |
+
+Ghi chú: mọi event `cook_*`/`dish_*` đều có `stove_id`,`order_id`,`dish_id`. `items` và `lost` trong event là **mảng kind**;
+`lost` theo thứ tự bỏ, **LIFO** (nhặt sau bỏ trước). Không có `customer_id` — dùng `order_id` (= id khách).
 
 ---
 
@@ -111,6 +121,9 @@ Dòng event: `{"type":"event","tick":k,"phase":...,"name":...,"data":{...}}`. Ai
 - **ID** cấp bằng `IdAllocator`, sắp bằng `ids.sort_by_id` (F2 < F10).
 - **Mã thoát:** `0` OK · `2` đầu vào sai/mâu thuẫn (**trước** khi ghi output) · `1` lỗi chạy/ghi.
 - **JSONL:** snapshot tick 0 đầu tiên; dòng `end` cuối cùng (đúng 1); mỗi tick ≤ 1 snapshot.
+- **Dòng `end`:** `type:"end","ticks","sim_tick","mode","state","reason","money","earned","reputation","score"`; `reason` = `time`/`docked`/`fainted` (gather) · `time` (quan) · `tick_limit` khi gameplay **chưa** xong. Kết thúc đúng bước cuối được cấp ⇒ ưu tiên **lý do gameplay**.
+- **Sắp xếp:** mảng thực thể theo id; `hold` theo thứ tự nhặt; `cook_started.items` theo kind. Tọa độ xuất **3 chữ số thập phân**.
+- **Tất định:** cùng bản chạy/máy/seed/tham số/inputs ⇒ JSONL **và file kho** giống **từng byte**; duyệt ứng viên theo thứ tự cố định, id món theo mã Unicode.
 
 ---
 
