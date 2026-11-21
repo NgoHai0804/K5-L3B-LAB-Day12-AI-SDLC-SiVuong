@@ -2,8 +2,8 @@
 
 Lát 4 (Nguyễn Thanh Tùng): bếp nấu (cook_started, dish_ready, ready_ticks), bưng món (dish_picked),
 phục vụ & tính boa (served), ăn xong trả tiền & uy tín (paid), dọn bàn hết ca (quan_end).
-Lát 3 (Quý Anh): khách đến theo lịch (first_customer_tick, customer_interval_s), chọn món đủ kho,
-no_dish — gắn vào hook `_maybe_spawn_customer`.
+Lát 3 (Quý Anh): khách đến theo lịch (first_customer_tick, customer_interval_s), chọn món đủ kho khả dụng,
+giữ chỗ nguyên liệu, no_dish — `_maybe_spawn_customer` (kiên nhẫn / customer_left ở `_resolve_customers_and_closing`).
 """
 
 import math
@@ -401,10 +401,60 @@ class QuanSim:
         hi = float(self.t["reputation_max"])
         return max(lo, min(hi, value))
 
+    # --- Lát 3 (Quý Anh): khách theo lịch, giữ chỗ nguyên liệu ---------------------
+    def _available_stock(self) -> dict:
+        """Kho khả dụng = tồn vật lý trừ tổng phần đang giữ của mọi đơn."""
+        avail = dict(self.stock)
+        for c in self.customers:
+            for k, qty in c["reserved"].items():
+                avail[k] = avail.get(k, 0) - qty
+        return {k: v for k, v in avail.items() if v > 0}
+
+    @staticmethod
+    def _can_reserve(recipe: dict, avail: dict) -> bool:
+        return all(avail.get(k, 0) >= qty for k, qty in recipe.items())
+
+    def _customer_due(self) -> bool:
+        """Lượt khách ở first_customer_tick rồi mỗi customer_interval_s × 60 tick, tính theo phase_tick sau tăng."""
+        first_tick = int(self.t["first_customer_tick"])
+        interval_ticks = int(round(self.t["customer_interval_s"] * TICK))
+        if self.phase_tick < first_tick:
+            return False
+        return (self.phase_tick - first_tick) % interval_ticks == 0
+
     def _maybe_spawn_customer(self, events):
-        # TODO(nhóm, lát 3 - Quý Anh): sinh khách theo first_customer_tick & customer_interval_s,
-        # chọn bàn trống id nhỏ nhất, chọn món đều theo seed trong các món đủ kho khả dụng, hoặc phát no_dish.
-        pass
+        # Gọi ở cuối bước, chỉ khi ca còn giờ (bước 4 đã return nếu đóng ca).
+        if not self.random_customers or not self._customer_due():
+            return
+        occupied = {c["table_id"] for c in self.customers}
+        empty_tables = [tb for tb in sort_by_id(self.tables) if tb["id"] not in occupied]
+        if not empty_tables:
+            return  # không còn bàn: bỏ lượt, không phát event
+        table = empty_tables[0]  # bàn trống id nhỏ nhất
+        avail = self._available_stock()
+        # Duyệt id món theo mã Unicode (thứ tự cố định) rồi chọn đều theo seed trong các món đủ kho khả dụng.
+        cookable = [d for d in sorted(self.menu) if self._can_reserve(self.menu[d]["recipe"], avail)]
+        if not cookable:
+            events.append(("no_dish", {}))
+            return
+        dish_id = self.rng.get("customer_spawn").choice(cookable)
+        order_id = self.ids.new("C")
+        reserved = {k: int(v) for k, v in self.menu[dish_id]["recipe"].items() if v > 0}
+        self.customers.append({
+            "id": order_id,
+            "table_id": table["id"],
+            "dish_id": dish_id,
+            "order_tick": self.phase_tick,
+            "state": "waiting",
+            "patience_ticks_left": int(round(self.t["patience_s"] * TICK)),  # đầy, giảm từ bước sau
+            "eat_ticks_left": 0,
+            "order_status": "reserved",
+            "reserved": reserved,  # giữ đúng công thức ngay khi gọi
+            "base_price": None,
+            "tip": None,
+        })
+        self.customers = sort_by_id(self.customers)
+        events.append(("customer_arrived", {"order_id": order_id, "table_id": table["id"], "dish_id": dish_id}))
 
     def _move(self, inp):
         speed = self.t["walk_speed"]
