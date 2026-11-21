@@ -1,0 +1,9 @@
+# Ma trận truy vết Phase 4 — Phát hành `v1.0.0` (Contract v1.3)
+
+| AC | Nội dung yêu cầu (TICKET-04) | Cách kiểm chứng | Bằng chứng | Kết quả |
+|---|---|---|---|---|
+| `AC-P4-01` | Benchmark có render (`chonoi/bench.py`, 1280×720, seed 42, warmup 3 s, đo 30 s) xuất đủ 5 trường `avg_fps`, `p1_low_fps`, `frames`, `measured_s`, `load_ms` | `python -m chonoi.bench --seed 42 --duration 30 --warmup 3 --out docs/proof/phase-4/bench.json` + `test_phase4.py` | [`bench.json`](../proof/phase-4/bench.json) (`avg_fps=63.17`, `p1_low_fps=38.03`, `load_ms=0.39`) | Đạt (vượt mốc ≥60 / ≥30 / ≤10s) |
+| `AC-P4-02` | Soak headless 10 Ngày (`chonoi/soak.py`, seed 7, lặp D1–D5 cho D6–D10, tất định, `days_completed == 10`, `crashes == 0`) | `python -m chonoi.soak --seed 7 --days 10 --out docs/proof/phase-4/soak.json` + `test_phase4.py` | [`soak.json`](../proof/phase-4/soak.json) (`days_completed=10`, `crashes=0`, `duration_s=0.8238`) | Đạt |
+| `AC-P4-03` | Cảnh báo tương phản cao (thủy quái gần, cạn oxy, khách sắp giận) & mở rộng Phụ đề SFX tiếng Việt | `tests/test_phase4.py::TestPhase4LeaderboardAndAccessibility` | [`phase4-verification.md`](../proof/phase-4/phase4-verification.md) | Đạt |
+| `AC-P4-04` | Mở rộng Bảng xếp hạng cục bộ Top 10 (`chonoi/leaderboard.py`): hòa điểm giữ thứ tự ghi trước, Unicode, `--export-leaderboard` | `tests/test_phase4.py::TestPhase4LeaderboardAndAccessibility` | [`phase4-verification.md`](../proof/phase-4/phase4-verification.md) | Đạt |
+| `AC-P4-05` | Regression P1–P4 (40/40 test pass), `CHANGELOG.md`, `docs/release-notes-v1.0.0.md`, `docs/retro.md`, `docs/ai-usage-log.md`, phản tư cá nhân `docs/members/wewewewe07.md` | `python -m unittest tests.test_quan_lat4 tests.test_quan_p2 tests.test_quan_p3 tests.test_phase4 tests.test_python_starter_units tests.test_team_check -v` | [`phase4-verification.md`](../proof/phase-4/phase4-verification.md) | Đạt |

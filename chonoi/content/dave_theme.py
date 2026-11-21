@@ -258,6 +258,59 @@ def freshness_badge(fresh: float) -> Dict[str, str]:
     return {"label": "Đã ươn", "color": "#ef5350"}
 
 
+# Mở rộng Phase 4: Cảnh báo tương phản cao (3 cảnh báo lõi) và Phụ đề SFX cho chế độ tắt tiếng.
+HIGH_CONTRAST_WARNINGS: Dict[str, Dict[str, str]] = {
+    "monster_near": {
+        "icon": "⚠🐊",
+        "text": "THỦY QUÁI GẦN!",
+        "fg": "#ffffff",
+        "bg": "#7b1fa2",
+        "border": "#ffeb3b",
+    },
+    "oxygen_low": {
+        "icon": "⚠🫧",
+        "text": "HẾT HƠI! NGOI LÊN NGAY!",
+        "fg": "#000000",
+        "bg": "#ffeb3b",
+        "border": "#d50000",
+    },
+    "customer_angry": {
+        "icon": "⚠💢",
+        "text": "KHÁCH SẮP GIẬN!",
+        "fg": "#ffffff",
+        "bg": "#d50000",
+        "border": "#ffffff",
+    },
+}
+
+
+SFX_SUBTITLES: Dict[str, str] = {
+    "dive": "[SFX: Ùm! Lặn xuống nước]",
+    "surface": "[SFX: Phì! Ngoi lên lấy hơi]",
+    "oxygen_empty": "[SFX: Tiếng còi báo cạn oxy!]",
+    "choke": "[SFX: Tiếng sặc nước — mất 1 Máu!]",
+    "gather": "[SFX: Xoẹt! Hái rau tươi]",
+    "fish_caught": "[SFX: Vụt! Bắt trúng đàn cá]",
+    "monster_hit": "[SFX: Rầm! Bị thủy quái đớp!]",
+    "cook_started": "[SFX: Xèo xèo! Nổi lửa bếp]",
+    "dish_ready": "[SFX: Ting! Món đã chín]",
+    "dish_burnt": "[SFX: Xì khói! Món bị cháy]",
+    "dish_picked": "[SFX: Cạch! Bưng đĩa lên tay]",
+    "served": "[SFX: Đặt món lên bàn]",
+    "paid": "[SFX: Leng keng! Thu tiền]",
+    "spoiled": "[SFX: Bíp! Nguyên liệu bị ươn]",
+    "current_warning": "[SFX: Tiếng nước lũ gầm réo từ xa!]",
+    "photo": "[SFX: Tách! Chụp ảnh Cá Hô]",
+}
+
+
+def sfx_subtitle_for_event(event_name: str, data: Optional[dict] = None) -> Optional[str]:
+    """Trả dòng phụ đề SFX tiếng Việt cho chế độ tắt âm thanh (chỉ dùng ở UI)."""
+    if event_name == "paid" and data and (data.get("tip") or 0) > 0:
+        return "[SFX: Leng keng! Thu tiền + tiền boa!]"
+    return SFX_SUBTITLES.get(event_name)
+
+
 CHONOISTA_TIERS = (
     (0, "Quán Mới Mở Bến", "★☆☆☆☆"),
     (1, "Quán Quen Rạch Sen", "★★☆☆☆"),

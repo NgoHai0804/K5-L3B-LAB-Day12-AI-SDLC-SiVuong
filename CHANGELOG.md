@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## v1.0.0 — Phase 4 (Phát hành & Kiểm chứng hiệu năng · Contract v1.3)
+### Tính năng & Công cụ mới
+- **Benchmark có render (`chonoi/bench.py`)**: Chạy `python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json` ở 1280×720 (làm nóng 3 s, đo 30 s), xuất đủ 5 trường `avg_fps`, `p1_low_fps`, `frames`, `measured_s`, `load_ms`.
+- **Soak headless 10 Ngày (`chonoi/soak.py`)**: Chạy `python3 -m chonoi.soak --seed 7 --days 10 --out soak.json` với bot tất định đi qua 10 chu kỳ `gather → quan → shop`, lặp kế hoạch D1–D5, 0 crash.
+- **Mở rộng Bảng xếp hạng cục bộ (`chonoi/leaderboard.py`)**: Top 10 bền vững, hòa điểm giữ thứ tự ghi trước, hỗ trợ xuất `--export-leaderboard`.
+- **Cảnh báo tương phản cao & Phụ đề SFX (`chonoi/content/dave_theme.py`)**: 3 cảnh báo rõ ràng (thủy quái gần, cạn oxy, khách sắp giận) và phụ đề SFX tiếng Việt cho chế độ tắt tiếng.
+- **Hoàn thiện tài liệu phát hành**: `docs/release-notes-v1.0.0.md`, `docs/retro.md`, `docs/ai-usage-log.md`, `docs/members/wewewewe07.md`, `docs/verification/phase-4.md`.
 
 ## Phase 3 — Contract v1.2 ("Mùa Nước Nổi" — Độ tươi & Kho cá thể)
 ### Breaking Changes
