@@ -245,7 +245,7 @@ function handleEvents(evs) {
       case "gather": toast(p[0], p[1] - 1.5, "+" + d.amount + " " + kn(d.kind), "#ffe58a"); SFX.gather(); break;
       case "fish_caught": toast(p[0], p[1] - 1.5, "+" + d.yield + " " + kn(d.kind), "#aef1ff"); SFX.catch();
         for (let i = 0; i < 18; i++) parts.push(bubble(p[0], p[1], true)); break;
-      case "hold_full": toast(p[0], p[1] - 1.5, "Giỏ đầy! (cần " + d.required + ", còn " + d.free + ")", "#ffb4a2"); SFX.full(); break;
+      case "hold_full": toast(p[0], p[1] - 1.5, "Giỏ không đủ chỗ!", "#ffb4a2"); SFX.full(); break;
       case "dive": SFX.dive(); for (let i = 0; i < 14; i++) parts.push(bubble(p[0], 0.6, true)); break;
       case "surface": SFX.surface(); toast(p[0], -1.2, "Phù!", "#e0f7ff"); break;
       case "oxygen_empty": toast(p[0], p[1] - 1.5, "Hết hơi!", "#ff6b6b"); SFX.bad(); break;
@@ -440,10 +440,15 @@ function drawDiver(x, y, s, o) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(o.angle || 0); ctx.scale(o.face, 1);
   const sp = o.sprint ? 1.8 : 1;
   const kick = Math.sin(t * 10 * sp) * .28 * (o.moving ? 1 : .35);
-  // bình oxy
-  const tg = ctx.createLinearGradient(0, -s * .55, 0, -s * .15); tg.addColorStop(0, "#ffd36b"); tg.addColorStop(1, "#c98a1a");
-  ctx.fillStyle = tg; rr(-s * .65, -s * .55, s * .8, s * .34, s * .17); ctx.fill(); ctx.strokeStyle = "#6b4a10"; ctx.lineWidth = s * .03; ctx.stroke();
-  ctx.fillStyle = "#555"; ctx.fillRect(s * .12, -s * .45, s * .1, s * .14);
+  // giỏ lưới tre đeo sau lưng (PRD §3: "đeo kính lặn tự chế và giỏ lưới") — đầy dần theo số món trong giỏ
+  const bx = -s * .7, by = -s * .62, bw = s * .72, bh = s * .4;
+  ctx.fillStyle = "#c8a165"; rr(bx, by, bw, bh, s * .1); ctx.fill();
+  if (o.fill > 0) { ctx.fillStyle = "rgba(120,170,90,.85)"; rr(bx + s * .04, by + bh * (1 - o.fill * .85), bw - s * .08, bh * o.fill * .85, s * .06); ctx.fill(); }
+  ctx.strokeStyle = "#7a5a2e"; ctx.lineWidth = s * .025;
+  for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(bx + i * bw / 4, by); ctx.lineTo(bx + i * bw / 4, by + bh); ctx.stroke(); }
+  for (let j = 1; j < 3; j++) { ctx.beginPath(); ctx.moveTo(bx, by + j * bh / 3); ctx.lineTo(bx + bw, by + j * bh / 3); ctx.stroke(); }
+  ctx.lineWidth = s * .04; rr(bx, by, bw, bh, s * .1); ctx.stroke();
+  ctx.strokeStyle = "#5a3e1c"; ctx.beginPath(); ctx.moveTo(bx + bw * .8, by + bh * .3); ctx.lineTo(s * .15, -s * .05); ctx.stroke();  // quai đeo
   // chân + chân vịt
   ctx.strokeStyle = "#1e2a3a"; ctx.lineWidth = s * .22; ctx.lineCap = "round";
   ctx.beginPath(); ctx.moveTo(-s * .5, s * .02); ctx.lineTo(-s * 1.05, s * (.16 + kick)); ctx.stroke();
@@ -650,7 +655,8 @@ function drawGatherWorld(w, h) {
   }
   if (p.invuln_ticks > 0 && Math.floor(t * 12) % 2 === 0) ctx.globalAlpha = .45;
   if (!at && nearFish) { ctx.strokeStyle = "rgba(200,250,255,.6)"; ctx.lineWidth = Math.max(1.5, s * .08); ctx.setLineDash([s * .5, s * .4]); circle(px, py, (meta.catch_radius || 2) * s); ctx.stroke(); ctx.setLineDash([]); }
-  drawDiver(px, py, s * 1.8, { face, angle: ang, moving, sprint: sprinting });
+  drawDiver(px, py, s * 1.8, { face, angle: ang, moving, sprint: sprinting,
+    fill: snap.hold_capacity ? Math.min(1, (snap.hold || []).length / snap.hold_capacity) : 0 });
   ctx.globalAlpha = 1;
   particles(sx, sy, s);
 
@@ -873,30 +879,40 @@ function gatherHUD(w, h, info) {
   }
   // thước độ sâu
   const dx = w - 38, dy0 = 30, dh = Math.min(h - 260, 420);
-  panel(dx - 20, dy0 - 16, 48, dh + 60, { r: 10 });
+  panel(dx - 24, dy0 - 16, 56, dh + 82, { r: 10 });  // cao thêm để chứa nhãn vùng (Mặt/Nông/Giữa/Sâu)
   ctx.fillStyle = lg(dy0, dy0 + dh, [[0, "#5fe0ee"], [.33, "#168fd0"], [.66, "#0b5aa6"], [1, "#062f6e"]]); rr(dx - 3, dy0, 10, dh, 5); ctx.fill();
   [10, 20].forEach((d) => { ctx.fillStyle = "#fff"; ctx.fillRect(dx - 8, dy0 + dh * d / D, 20, 2); });
   const df = Math.min(1, p.pos[1] / D);
   ctx.fillStyle = "#ffcf6b"; ctx.beginPath(); ctx.moveTo(dx - 6, dy0 + df * dh); ctx.lineTo(dx - 18, dy0 + df * dh - 8); ctx.lineTo(dx - 18, dy0 + df * dh + 8); ctx.fill();
   text(p.pos[1].toFixed(0) + "m", dx + 2, dy0 + dh + 32, { size: 18, align: "center", color: "#ffe9c4", weight: "800" });
-  // giỏ
-  const cap = snap.hold_capacity || 12, hold = snap.hold || [];
+  // vùng độ sâu theo Ticket-02: mặt nước / nông <10 / giữa 10–20 / sâu >=20
+  const zone = at ? "Mặt" : p.pos[1] < 10 ? "Nông" : p.pos[1] < 20 ? "Giữa" : "Sâu";
+  text(zone, dx + 2, dy0 + dh + 54, { size: 18, align: "center", color: p.pos[1] >= 20 ? "#ff8a65" : "#9fd6ec", weight: "800" });
+  // giỏ — đọc được cả kho cá thể v1.2 {id,kind,fresh} lẫn kind dạng chuỗi (fixture cũ)
+  const cap = snap.hold_capacity || 12, hold = (snap.hold || []).map((it) => (typeof it === "string" ? { kind: it, fresh: null } : it));
   const sz = Math.max(40, Math.min(58, (w - 120) / cap - 8)), W = cap * (sz + 8) + 24;
-  const gx = (w - W) / 2, gy = h - sz - 70;
-  panel(gx, gy, W, sz + 58);
-  text("Giỏ lưới " + hold.length + "/" + cap, gx + 14, gy + 26, { size: 18, color: hold.length >= cap ? "#ff8a80" : "#ffe4b5", weight: "800" });
+  const gx = (w - W) / 2, gy = h - sz - 70, full = hold.length >= cap;
+  const fr = hold.filter((it) => Number.isFinite(it.fresh)).map((it) => it.fresh), spoiledN = fr.filter((f) => f < 30).length;
+  panel(gx, gy, W, sz + 58, full ? { stroke: "#ff5252", lw: 3 } : {});
+  text("Giỏ lưới " + hold.length + "/" + cap + (full ? " · ĐẦY!" : "")
+    + (fr.length ? " · tươi TB " + Math.floor(fr.reduce((a, b) => a + b, 0) / fr.length) + (spoiledN ? " · " + spoiledN + " ươn" : "") : ""),
+    gx + 14, gy + 26, { size: 18, color: full || spoiledN ? "#ff8a80" : "#ffe4b5", weight: "800" });
   if (p.catch_cd_ticks > 0) text("hồi bắt " + (p.catch_cd_ticks / 60).toFixed(1) + "s", gx + W - 14, gy + 26, { size: 18, align: "right", color: "#aef1ff" });
   for (let i = 0; i < cap; i++) {
     const x0 = gx + 12 + i * (sz + 8), y0 = gy + 36;
     rr(x0, y0, sz, sz, 8); ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.fill(); ctx.strokeStyle = "rgba(160,230,255,.3)"; ctx.lineWidth = 1; ctx.stroke();
     const it = hold[i];
     if (it) {
-      const sp = it.fresh < 30;
+      const hasF = Number.isFinite(it.fresh), sp = hasF && it.fresh < 30;
       if (sp) ctx.globalAlpha = .45;
       drawIcon(it.kind, x0 + sz / 2, y0 + sz / 2 - 4, sz * .32);
       ctx.globalAlpha = 1;
-      bar(x0 + 5, y0 + sz - 10, sz - 10, 6, it.fresh / 100, freshCol(it.fresh));
+      if (hasF) bar(x0 + 5, y0 + sz - 10, sz - 10, 6, it.fresh / 100, freshCol(it.fresh));
       if (sp) text("ươn", x0 + sz / 2, y0 + 20, { size: 16, align: "center", color: "#e8d8c0", stroke: "#3a2a1a", strokeW: 3, weight: "800" });
+      if (i === hold.length - 1) {  // LIFO: món vào sau cùng sẽ rơi đầu tiên khi bị Cá Sấu đớp / ngất
+        rr(x0 - 2, y0 - 2, sz + 4, sz + 4, 9); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.stroke();
+        text("▼", x0 + sz - 8, y0 + 13, { size: 13, align: "center", color: "#ffffff", stroke: "#0a223a", strokeW: 3, weight: "900" });
+      }
     }
   }
   // cảnh báo
