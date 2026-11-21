@@ -185,11 +185,25 @@ function drawGather(w, h) {
     }
   }
   // HUD trên
-  text("⏱ " + fmtTime(snap.time_left_ticks), 14, 28, { size: 20 });
-  if (p && p.oxygen_ticks !== undefined && p.oxygen_max_ticks) {
-    const low = p.oxygen_ticks < p.oxygen_max_ticks * 0.25;
-    bar(110, 12, 220, 18, p.oxygen_ticks / p.oxygen_max_ticks, low ? "#ef5350" : "#4fc3f7", "Oxy " + Math.ceil(p.oxygen_ticks / 60) + "s");
+  const blink = Math.floor((snap.tick || 0) / 15) % 2 === 0;  // nhấp nháy theo tick, ~4 lần/giây
+  const TPS = meta.tick_hz || 60;
+  if (snap.time_left_ticks !== undefined) {
+    const tl = snap.time_left_ticks, warn = tl < 20 * TPS, crit = tl < 10 * TPS;
+    if (!(crit && !blink)) text("⏱ " + fmtTime(tl), 14, 28, { size: 20, color: warn ? "#ff5252" : "#e8eef2" });
   }
+  if (p && p.oxygen_ticks !== undefined && p.oxygen_max_ticks) {
+    const low = p.oxygen_ticks < p.oxygen_max_ticks * 0.25, empty = p.oxygen_ticks <= 0;
+    bar(110, 12, 220, 18, p.oxygen_ticks / p.oxygen_max_ticks, low ? "#ef5350" : "#4fc3f7", "Oxy " + Math.ceil(p.oxygen_ticks / 60) + "s");
+    if (empty && blink) { ctx.strokeStyle = "#ff5252"; ctx.lineWidth = 3; ctx.strokeRect(108, 10, 224, 22); ctx.lineWidth = 1; }
+    if (p.zero_oxy_ticks > 0 && blink) text("⚠ Ngạt!", 420, 29, { size: 18, color: "#ff5252" });
+  }
+  // chú thích màu nguyên liệu (chỉ loại đang có trên bản đồ / trong giỏ)
+  const kinds = [...new Set([...(snap.nodes || []).map((n) => n.kind), ...(snap.fish || []).map((f) => f.kind), ...(snap.hold || [])])].sort();
+  kinds.forEach((k, i) => {
+    const x0 = w - 14 - (kinds.length - i) * 105;
+    ctx.fillStyle = kc(k); ctx.fillRect(x0, 18, 12, 12);
+    text(KIND_NAME[k] || k, x0 + 17, 29, { size: 12, color: "#cfd8dc" });
+  });
   if (p && p.hp !== undefined && p.hp_max) {
     let hs = "";
     for (let i = 0; i < p.hp_max; i++) hs += i < p.hp ? "♥" : "♡";
@@ -200,13 +214,21 @@ function drawGather(w, h) {
   // giỏ (khoang) dưới
   if (snap.hold && snap.hold_capacity) {
     const cap = snap.hold_capacity, sz = Math.min(30, (w - 260) / cap - 4), y0 = h - bottom + 8;
+    const n = snap.hold.length, full = n >= cap;
     for (let i = 0; i < cap; i++) {
       const x0 = 14 + i * (sz + 4);
       ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(x0, y0, sz, sz);
       if (snap.hold[i]) { ctx.fillStyle = kc(snap.hold[i]); ctx.fillRect(x0 + 3, y0 + 3, sz - 6, sz - 6); }
+      if (full) { ctx.strokeStyle = "#ff5252"; ctx.strokeRect(x0 + .5, y0 + .5, sz - 1, sz - 1); }
+    }
+    if (n > 0) {  // món nhặt sau cùng: mất đầu tiên khi ngất (LIFO)
+      const xl = 14 + (n - 1) * (sz + 4);
+      ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(xl - 1, y0 - 1, sz + 2, sz + 2); ctx.lineWidth = 1;
+      text("▲", xl + sz / 2, y0 - 3, { size: 9, align: "center", color: "#ffffff" });
     }
     const names = {}; snap.hold.forEach((k) => (names[k] = (names[k] || 0) + 1));
-    text("Giỏ " + snap.hold.length + "/" + cap + "  " + Object.keys(names).map((k) => (KIND_NAME[k] || k) + "×" + names[k]).join(", "), 14, y0 + sz + 16, { size: 12, color: "#cfd8dc" });
+    text("Giỏ " + n + "/" + cap + (full ? "  ĐẦY!" : "") + "  " + Object.keys(names).map((k) => (KIND_NAME[k] || k) + "×" + names[k]).join(", "),
+      14, y0 + sz + 16, { size: 12, color: full ? "#ff5252" : "#cfd8dc" });
   }
   text("WASD/mũi tên bơi · E hái / cập bến · Space bắt cá · R chơi lại", w - 10, h - 14, { size: 12, align: "right", color: "#9fb3c0" });
 }
