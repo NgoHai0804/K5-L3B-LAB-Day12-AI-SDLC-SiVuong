@@ -91,6 +91,8 @@ def main(argv=None) -> int:
     p.add_argument("--height", type=int, default=720)
     a = p.parse_args(argv)
     try:
+        if not math.isfinite(a.duration) or not math.isfinite(a.warmup):
+            raise BadInput("--duration và --warmup phải là số hữu hạn")
         if a.duration < 0 or a.warmup < 0:
             raise BadInput("--duration và --warmup phải >= 0")
         if a.width <= 0 or a.height <= 0:

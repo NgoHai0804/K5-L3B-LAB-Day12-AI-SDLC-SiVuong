@@ -29,7 +29,7 @@ class Manifest(unittest.TestCase):
         contract = load_contract()
         self.assertEqual(contract["contract_version"], "1.3")
         self.assertEqual(contract["modes"], ["gather", "quan", "day"])
-        self.assertIn("paused", contract["snapshot_contract"]["common"])
+        self.assertIn("state", contract["snapshot_contract"]["common"])  # pause biểu diễn qua `state`, không có trường `paused`
         self.assertEqual(contract["input_contract"]["commands"]["buy"], ["oxygen", "hp"])
 
     def test_buttons_are_edges_and_buy_is_frame_only(self):

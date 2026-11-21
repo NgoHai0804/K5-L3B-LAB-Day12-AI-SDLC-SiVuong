@@ -6,6 +6,7 @@ bench.json
 soak.json
 leaderboard.json
 bang-xep-hang.json
+!docs/proof/**/*.jsonl
 .DS_Store
 saves/
 link.md

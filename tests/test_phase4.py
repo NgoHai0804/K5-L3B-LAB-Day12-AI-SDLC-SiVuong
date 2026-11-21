@@ -48,7 +48,7 @@ class ContractV13(unittest.TestCase):
         self.assertIsInstance(c.get("extensions"), list)
         self.assertIn("leaderboard", c["extensions"])
         self.assertIn("subtitles", c["extensions"])
-        self.assertEqual(c["team_size"], 5)
+        self.assertEqual(c["team_size"], 6)
 
     def test_v12_gameplay_kept(self):
         t = contract()["tuning"]

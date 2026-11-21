@@ -2,6 +2,7 @@
 
 | Phase | Người | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|---|
+| 1 | Đức (tmduc23) | Claude Code (Opus 5) | Lát 2: hái nút + bắt cá + hợp đồng file kho (`chonoi/sim/gather.py`), test `test_rules_p1.py::Harvest`/`::Catch`, ma trận AC-P1-05..08 | ~40k token | (a) AI tự viết `_try_take()` trùng seam `_try_hold()` — đã xoá, nối lại seam của Hải; (b) gợi ý hard-code `1200`/`30` tick thay vì đọc `regrow_s`/`catch_cooldown_s`; (c) đặt hồi chiêu cả khi bắt thất bại vì giỏ đầy. Đã sửa tay. |
 | 4 | NgoHai0804 | Claude / agent CLI | `leaderboard.py`, cổng ghi trong `headless.py`, `docs/verification/phase-4.md` | ~30k token | AI định ghi bảng xếp hạng cho mọi lượt `day`; nhóm sửa lại chỉ ghi khi đủ 5 Ngày chuẩn, không scenario. |
 | 4 | buiquyanh9-ai | Claude / agent CLI | `web/index.html`: 3 cảnh báo, chế độ tương phản cao (H), phụ đề SFX | ~25k token | AI đặt nhãn cảnh báo ghép chuỗi (`"KHÁCH" + " SẮP GIẬN!"`) nên test dò chuỗi nguyên văn thất bại; nhóm sửa test cho khớp. |
 | 4 | son309 | Claude / agent CLI | `bench.py` (rasterizer CPU, 5 trường) + `bench_cmd` | ~20k token | AI tính `p1_low_fps` từ khung chậm nhất nhưng quên chặn `frames=0`; đã thêm `max(1, …)` và giá trị dự phòng. |

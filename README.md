@@ -36,15 +36,15 @@ python3 -m chonoi.play --export-leaderboard bang-xep-hang.json       # xuất b�
 | E | hái bông ở mặt nước · cập bến (kết thúc buổi) | nấu ở bếp · bưng món · phục vụ ở bàn |
 | Space | bắt đàn cá (khi ở dưới nước) | — |
 | Enter / E (lúc hết buổi) | sang buổi tối | ra chợ sắm đồ |
-| 1–6 (ở chợ) | mua nâng cấp | |
+| 1–7 (ở chợ) | mua nâng cấp | |
 | N (màn tiêu đề) | chơi mới từ ngày 1 | |
 | R / M | chơi lại buổi · tắt/bật tiếng (phụ đề vẫn hiện) | |
 | H | bật/tắt **tương phản cao** | bật/tắt **tương phản cao** |
 
 ## Luật chính và cách tính điểm
 
-- **Sáng:** oxy 30 s, chỉ giảm khi ở dưới nước (d > 0.5 m) và hồi rất nhanh khi lên mặt nước. Hết oxy thì cứ đủ 60 tick lại mất 1 Máu (có 3 Máu). Hết Máu thì **ngất**: mất cả giỏ, kho rỗng. Giỏ chứa 12 ô. Bông điên điển và bông súng hái ở mặt nước, mọc lại sau 20 s. Một đàn cá linh cho 3 con, một đàn cá lóc cho 1 con, hồi chiêu bắt 0.5 s. Cập bến hoặc hết 3 phút thì giỏ được ghi ra file kho.
-- **Tối:** khách đầu tiên đến ở tick 120, sau đó mỗi 15 s một khách nếu bàn T1 còn trống. Khách gọi ngẫu nhiên (theo seed) một món nấu được từ kho, và **giữ chỗ** nguyên liệu ngay lúc gọi. Quy trình: nấu ở B1 → bưng → phục vụ trước khi khách hết kiên nhẫn (60 s). Khách ăn 10 s rồi trả tiền. Phục vụ khi khách còn ≥ 50% kiên nhẫn thì được boa `floor(giá × 0.2)` và +0.2 uy tín. Khách bỏ về làm uy tín −0.5. Tất cả số lấy từ `game.contract.json`.
+- **Sáng:** oxy 30 s, chỉ giảm khi ở dưới nước (d > 0.5 m) và hồi rất nhanh khi lên mặt nước. Hết oxy thì cứ đủ 60 tick lại mất 1 Máu (có 3 Máu). Hết Máu thì **ngất**: mất cả giỏ, kho rỗng. Giỏ chứa 12 ô. Bông điên điển, bông súng, kèo nèo hái ở mặt nước, mọc lại sau 20 s. Một đàn cá linh cho 3 con, cá lóc 1 con, cá kèo 2 con; hồi chiêu bắt 0.5 s. Cập bến hoặc hết 3 phút thì giỏ được ghi ra file kho (schema **kho cá thể** `{"items":[{id,kind,fresh}]}`).
+- **Tối:** khách đầu tiên đến ở tick 120, sau đó mỗi 15 s một khách nếu còn bàn trống. Khách gọi ngẫu nhiên (theo seed) một món nấu được từ kho, và **giữ chỗ** nguyên liệu ngay lúc gọi. Quy trình: nấu ở bếp → bưng → phục vụ trước khi khách hết kiên nhẫn (60 s). Khách ăn 10 s rồi trả tiền. Phục vụ khi khách còn ≥ 50% kiên nhẫn thì được boa `floor(giá × 0.2)` và +0.2 uy tín. Khách bỏ về làm uy tín −0.5. Tất cả số lấy từ `game.contract.json`.
 - **Điểm** = `earned + 100 × floor(uy tín)` (tiền tính bằng nghìn đồng).
 
 | Món | Công thức | Nấu | Giá |
@@ -52,6 +52,11 @@ python3 -m chonoi.play --export-leaderboard bang-xep-hang.json       # xuất b�
 | Cá lóc nướng trui | cá lóc ×1 | 6 s | 60k |
 | Gỏi bông súng | bông súng ×2 | 4 s | 40k |
 | Lẩu cá linh bông điên điển | cá linh ×3 + bông điên điển ×1 | 10 s | 120k |
+| Canh chua cá lóc | cá lóc ×1 + bông điên điển ×1 | 8 s | 90k |
+| Cá kèo nướng muối ớt | cá kèo ×2 | 6 s | 70k |
+| Lẩu mắm miền Tây | cá linh ×2 + cá kèo ×1 + kèo nèo ×1 + bông điên điển ×1 | 12 s | 200k |
+
+Giá bán theo **độ tươi**: `base_price = floor(giá × trung bình fresh / 100)`; hàng để lâu bị **ươn** (`fresh < 30`, event `spoiled`) và không bán được.
 
 Hợp đồng file kho và danh sách sự kiện: [`docs/contracts/README.md`](docs/contracts/README.md). PRD: [`docs/prd/PRD-0.md`](docs/prd/PRD-0.md).
 

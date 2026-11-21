@@ -1,6 +1,7 @@
 # Kế hoạch Phase 3 — Change Request “Mùa Nước Nổi” (≤ 1 trang)
 
-> Ticket TICKET-03 · Contract **v1.2** · 35 phút · hạn tag `phase-3` **2:30**. Chi tiết số liệu + chia lát: `TEAM.md` (mục "Phase 3") · quyết định schema: `docs/adr/0002-kho-ca-the-do-tuoi.md`.
+> Ticket TICKET-03 · Contract **v1.2** · 35 phút · hạn tag `phase-3` **2:30**. Chi tiết số liệu + chia lát: `TEAM.md` · quyết định schema: `docs/adr/0002-kho-ca-the-do-tuoi.md`.
+> Ghi chú: tên người trong bảng lát là kế hoạch **ban đầu**; bảng thành viên chốt cuối là 6 người, xem `TEAM.md`.
 
 ## Mục tiêu (change request)
 - **[THAY THẾ]** Kho đếm theo loại → **kho cá thể** `{"items":[{id,kind,fresh}]}`; id `I1,I2,…` tăng **xuyên pha/Ngày**; LIFO theo thứ tự vào giỏ.

@@ -1,6 +1,6 @@
 # ADR-0002: Kho cá thể + độ tươi (migration sang contract v1.2)
 
-- Trạng thái: **đề xuất** (chờ cả nhóm chốt ở Phase 3) — thay thế phần schema kho của ADR-0001 (vẫn giữ tập kind v1.1)
+- Trạng thái: **chấp nhận** (đã áp dụng ở Phase 3 — contract v1.2, giữ ở v1.3) — thay thế phần schema kho của ADR-0001 (vẫn giữ tập kind v1.1)
 - Ngày, người quyết: 2026-11-21 · Change Request “Mùa Nước Nổi” (TICKET-03) — đề xuất bởi Sơn (AI/Contracts lead) + Hải (Integrator)
 
 ## Bối cảnh

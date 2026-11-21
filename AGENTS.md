@@ -34,3 +34,4 @@
 ## Skills / hooks của nhóm
 - `.agents/skills/rule-check/`: đối chiếu thay đổi luật với PRD/ticket trước khi code (khi nhận ticket mới hoặc change request).
 - `.agents/skills/headless-smoke/`: chạy toàn bộ test, smoke hai tiến trình và kiểm tất định trước khi commit hoặc gắn tag.
+- `.agents/skills/pause-contract-smoke/`: kiểm pause đóng băng `sim_tick`/`phase_tick`/`time_left_ticks` và resume chạy gameplay ngay cùng bước (`scripts/run_smoke.py`).

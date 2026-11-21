@@ -2,6 +2,7 @@
 
 | Phase | Người | Đã xong | Sắp làm | Vướng gì |
 |---|---|---|---|---|
+| 1 | Đức (tmduc23) | Lát 2: hái nút + bắt cá + hợp đồng file kho (AC-P1-05..08); test `test_rules_p1.py::Harvest`/`::Catch` xanh | Vai PO theo dõi Phase 2, mở ADR nếu đổi yêu cầu | — |
 | 4 | NgoHai0804 | Contract v1.3, `leaderboard.py`, cổng ghi + mã thoát trong `headless.py` | Release `v1.0.0`, gắn tag | Cần quyền/`gh` để tạo Release trên GitHub |
 | 4 | buiquyanh9-ai | 3 cảnh báo, tương phản cao (H), phụ đề SFX trong `index.html` | Chụp ảnh bằng chứng | Cửa sổ cảnh báo ngắn, khó chụp live |
 | 4 | son309 | `bench.py` có render, `bench_cmd`, proof `bench.json` | Rà lại `p1_low_fps` | — |
