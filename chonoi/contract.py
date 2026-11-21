@@ -4,6 +4,8 @@ import json
 import os
 
 from .errors import BadInput
+from .inventory import KINDS
+from .sim.day_plan import validate_day_plan
 
 DEFAULT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game.contract.json")
 
@@ -136,8 +138,26 @@ def validate_tuning(t):
         raise BadInput("quan.tip_reputation phải > 0")
     if q.get("burn_s") is not None:
         raise BadInput("burn_s phải là null ở Phase 1")
-    # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
+    # Lát 3 Phase 2 (Quý Anh): bếp/bàn theo dữ liệu (B1–B2, T1–T4), id duy nhất, vị trí trong phòng.
+    for name in ("stoves", "tables"):
+        items = q.get(name)
+        if not isinstance(items, list) or not items:
+            raise BadInput(f"tuning.quan.{name} phải là mảng khác rỗng")
+        ids = [it.get("id") if isinstance(it, dict) else None for it in items]
+        if any(not isinstance(i, str) or not i for i in ids) or len(set(ids)) != len(ids):
+            raise BadInput(f"tuning.quan.{name}: mỗi phần tử cần id duy nhất")
+        for it in items:
+            _pos_in(f"quan.{name}.{it['id']}.pos", it.get("pos"), q["bounds"], ("x", "z"))
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
             raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+        recipe = d.get("recipe")
+        if not isinstance(recipe, dict) or not recipe:
+            raise BadInput(f"menu.{dish_id}.recipe phải là object khác rỗng")
+        for kind, qty in recipe.items():
+            if kind not in KINDS:
+                raise BadInput(f"menu.{dish_id}: nguyên liệu lạ {kind!r} (hợp lệ: {KINDS})")
+            if isinstance(qty, bool) or not isinstance(qty, int) or qty <= 0:
+                raise BadInput(f"menu.{dish_id}.recipe.{kind} phải là số nguyên dương")
+    validate_day_plan(t)
