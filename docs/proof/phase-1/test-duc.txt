@@ -1,0 +1,201 @@
+﻿=== Lat 2 (Duc) - bang chung Phase 1 ===
+Ngay: 2026-11-21
+Lenh: PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+
+python : test_01_bat_duoc_dung_fish_yield (test_gather_s2.TestBatCa.test_01_bat_duoc_dung_fish_yield) ... ok
+At line:7 char:1
++ python -m unittest discover -s tests -v 2>&1 | Out-File -Encoding utf ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (test_01_bat_duo...h_yield) ... ok:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+test_02_ca_bi_xoa_khoi_danh_sach (test_gather_s2.TestBatCa.test_02_ca_bi_xoa_khoi_danh_sach) ... ok
+test_03_ca_loc_cho_dung_1_mon (test_gather_s2.TestBatCa.test_03_ca_loc_cho_dung_1_mon) ... ok
+test_04_o_mat_nuoc_thi_khong_bat_duoc (test_gather_s2.TestBatCa.test_04_o_mat_nuoc_thi_khong_bat_duoc) ... ok
+test_05_hoi_chieu_chan_cu_bat_thu_hai (test_gather_s2.TestBatCa.test_05_hoi_chieu_chan_cu_bat_thu_hai) ... ok
+test_06_sau_hoi_chieu_thi_bat_duoc_tiep (test_gather_s2.TestBatCa.test_06_sau_hoi_chieu_thi_bat_duoc_tiep) ... ok
+test_07_ngoai_catch_radius_thi_khong_bat (test_gather_s2.TestBatCa.test_07_ngoai_catch_radius_thi_khong_bat) ... ok
+test_08_gio_khong_du_cho_ca_linh_thi_hold_full 
+(test_gather_s2.TestBatCa.test_08_gio_khong_du_cho_ca_linh_thi_hold_full) ... ok
+test_09_id_nho_thang_khi_cung_khoang_cach (test_gather_s2.TestBatCa.test_09_id_nho_thang_khi_cung_khoang_cach) ... ok
+test_01_docked_ghi_kho_dung_khoa_goc_items (test_gather_s2.TestGhiKho.test_01_docked_ghi_kho_dung_khoa_goc_items) ... 
+ok
+test_02_gather_end_khop_voi_file_kho (test_gather_s2.TestGhiKho.test_02_gather_end_khop_voi_file_kho) ... ok
+test_03_tick_limit_thi_KHONG_ghi_kho (test_gather_s2.TestGhiKho.test_03_tick_limit_thi_KHONG_ghi_kho) ... ok
+test_04_het_gio_reason_time_van_ghi_kho (test_gather_s2.TestGhiKho.test_04_het_gio_reason_time_van_ghi_kho) ... ok
+test_05_bo_muc_bang_0 (test_gather_s2.TestGhiKho.test_05_bo_muc_bang_0) ... ok
+test_06_fainted_thi_ghi_kho_rong (test_gather_s2.TestGhiKho.test_06_fainted_thi_ghi_kho_rong) ... ok
+test_07_sample_la_mau_hop_le_cho_ca_hai_team (test_gather_s2.TestGhiKho.test_07_sample_la_mau_hop_le_cho_ca_hai_team) 
+... ok
+test_08_kho_so_am_thi_thoat_2 (test_gather_s2.TestGhiKho.test_08_kho_so_am_thi_thoat_2) ... ok
+test_09_kho_id_la_thi_thoat_2 (test_gather_s2.TestGhiKho.test_09_kho_id_la_thi_thoat_2) ... ok
+test_10_kho_khoa_goc_la_thi_thoat_2 (test_gather_s2.TestGhiKho.test_10_kho_khoa_goc_la_thi_thoat_2) ... ok
+test_01_hai_duoc_phat_gather_va_vao_gio (test_gather_s2.TestHaiNut.test_01_hai_duoc_phat_gather_va_vao_gio) ... ok
+test_02_nut_het_ready_sau_khi_hai (test_gather_s2.TestHaiNut.test_02_nut_het_ready_sau_khi_hai) ... ok
+test_03_khong_hai_lai_khi_chua_moc_lai (test_gather_s2.TestHaiNut.test_03_khong_hai_lai_khi_chua_moc_lai) ... ok
+test_04_node_regrown_sau_dung_regrow_ticks (test_gather_s2.TestHaiNut.test_04_node_regrown_sau_dung_regrow_ticks) ... 
+ok
+test_05_ngoai_interact_radius_thi_khong_hai (test_gather_s2.TestHaiNut.test_05_ngoai_interact_radius_thi_khong_hai) 
+... ok
+test_06_gio_day_thi_hold_full_co_kind_va_nut_con_ready 
+(test_gather_s2.TestHaiNut.test_06_gio_day_thi_hold_full_co_kind_va_nut_con_ready) ... ok
+test_07_id_nho_thang_khi_cung_khoang_cach (test_gather_s2.TestHaiNut.test_07_id_nho_thang_khi_cung_khoang_cach) ... ok
+test_08_duoi_nuoc_thi_khong_hai_duoc (test_gather_s2.TestHaiNut.test_08_duoi_nuoc_thi_khong_hai_duoc) ... ok
+test_04_choke_at_sixtieth_underwater_zero_oxy_tick 
+(test_gather_water.Choke.test_04_choke_at_sixtieth_underwater_zero_oxy_tick)
+Chạm oxy 0 ở tick 1 và ở dưới nước liên tục ⇒ ngạt đầu ở tick 60 (1 + 59), −1 Máu (AC-P1-03). ... ok
+test_04_surfacing_at_choke_step_avoids_choke (test_gather_water.Choke.test_04_surfacing_at_choke_step_avoids_choke)
+Nổi lên đúng bước đáng ngạt ⇒ hồi oxy, reset đếm, KHÔNG ngạt (AC-P1-03). ... ok
+test_05_faint_drops_hold_lifo_and_writes_empty_inventory 
+(test_gather_water.FaintAndHold.test_05_faint_drops_hold_lifo_and_writes_empty_inventory)
+Máu 0 ⇒ `faint` (cause choke, lost LIFO, hp 0) → `gather_end` fainted, kho rỗng (AC-P1-03/04). ... ok
+test_06_try_hold_appends_in_order (test_gather_water.HoldSeam.test_06_try_hold_appends_in_order) ... ok
+test_06_try_hold_reports_full_with_free_and_required 
+(test_gather_water.HoldSeam.test_06_try_hold_reports_full_with_free_and_required) ... FAIL
+test_01_oxy_drains_underwater_and_emits_empty_once 
+(test_gather_water.Oxygen.test_01_oxy_drains_underwater_and_emits_empty_once)
+Dưới nước oxy −1/tick; `oxygen_empty` chỉ khi từ dương xuống 0 (AC-P1-02). ... ok
+test_02_oxy_refills_at_surface_and_clamps (test_gather_water.Oxygen.test_02_oxy_refills_at_surface_and_clamps)
+Ở mặt nước hồi `oxygen_refill_per_tick` mỗi tick, kẹp [0, oxygen_max] (AC-P1-02). ... ok
+test_03_dive_when_crossing_down (test_gather_water.SurfaceBoundary.test_03_dive_when_crossing_down) ... ok
+test_03_surface_when_crossing_up (test_gather_water.SurfaceBoundary.test_03_surface_when_crossing_up) ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not 
+(test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... Exception in thread Thread-86 
+(_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\VIET ANH\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "C:\Users\VIET ANH\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\VIET ANH\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 1599, in _readerthread
+    buffer.append(fh.read())
+                  ^^^^^^^^^
+  File "C:\Users\VIET ANH\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x9d in position 35: character maps to <undefined>
+Exception in thread Thread-88 (_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\VIET ANH\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "C:\Users\VIET ANH\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\VIET ANH\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 1599, in _readerthread
+    buffer.append(fh.read())
+                  ^^^^^^^^^
+  File "C:\Users\VIET ANH\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x9d in position 35: character maps to <undefined>
+ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... Exception in thread 
+Thread-108 (_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\VIET ANH\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "C:\Users\VIET ANH\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\VIET ANH\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 1599, in _readerthread
+    buffer.append(fh.read())
+                  ^^^^^^^^^
+  File "C:\Users\VIET ANH\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x9d in position 23: character maps to <undefined>
+ok
+test_inv_01_gather_writes_inventory_quan_reads_it 
+(test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first 
+(test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... 
+ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+======================================================================
+FAIL: test_06_try_hold_reports_full_with_free_and_required 
+(test_gather_water.HoldSeam.test_06_try_hold_reports_full_with_free_and_required)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\AI20K\Day_12\Lab\K5-L3B-LAB-Day12-AI-SDLC\tests\test_gather_water.py", line 136, in 
+test_06_try_hold_reports_full_with_free_and_required
+    self.assertEqual(ev, [("hold_full", {"action": "gather", "node_id": "N3",
+AssertionError: Lists differ: [('hold_full', {'kind': 'bong_sung', 'action': 'gather', '[38 chars] 0})] != 
+[('hold_full', {'action': 'gather', 'node_id': 'N3', 'requ[17 chars] 0})]
+
+First differing element 0:
+('hold_full', {'kind': 'bong_sung', 'action': 'gather', '[37 chars]: 0})
+('hold_full', {'action': 'gather', 'node_id': 'N3', 'requ[16 chars]: 0})
+
++ [('hold_full', {'action': 'gather', 'free': 0, 'node_id': 'N3', 'required': 1})]
+- [('hold_full',
+-   {'action': 'gather',
+-    'free': 0,
+-    'kind': 'bong_sung',
+-    'node_id': 'N3',
+-    'required': 1})]
+
+----------------------------------------------------------------------
+Ran 68 tests in 7.973s
+
+FAILED (failures=1)
+
+=== Ghi chu ket qua ===
+68 test / 1 do. Test do duy nhat: test_gather_water.HoldSeam.test_06_try_hold_reports_full_with_free_and_required
+Nguyen nhan: assertEqual khoa cung payload hold_full cu. Duc da them khoa 'kind' cho dung hop dong
+dong bang docs/contracts/README.md section 4. Can Hai noi assert - ban sua goi y o docs/clarify.md muc "Ghi chu #5".
+27/27 test cua lat 2 (test_gather_s2.py) XANH.
+
+=== Chay that: ban giao Sang -> Toi ===
+1) python3 -m chonoi.headless --mode gather --seed 1 --ticks 700 \
+     --inputs docs/proof/phase-1/lat2-inputs.json \
+     --out docs/proof/phase-1/lat2-gather.jsonl \
+     --inventory-out docs/proof/phase-1/lat2-kho.json
+   -> exit 0
+   su kien: tick 161 gather{N1,bong_dien_dien} | tick 231 dive | tick 309 fish_caught{F1,ca_linh}
+            | tick 388 surface | tick 621 gather_end{reason=docked}
+   kho ghi ra: {"items":{"bong_dien_dien":1,"ca_linh":3}}
+
+2) python3 -m chonoi.headless --mode quan --seed 1 --ticks 60 \
+     --inventory docs/proof/phase-1/lat2-kho.json \
+     --out docs/proof/phase-1/lat2-quan.jsonl
+   -> exit 0
+   snapshot tick 0: "stock":{"bong_dien_dien":1,"ca_linh":3}  (khop y kho)
+
+3) Khong ghi kho khi tick_limit (hop dong section 1): chay gather KHONG co --inputs
+   -> ket thuc reason=tick_limit, file --inventory-out KHONG duoc tao. Dung luat.
+
+=== Xac dinh (determinism, bat bien section 5) ===
+Chay 2 lan cung --seed 1 cung --inputs:
+SHA256 run1 = 52F973638EA4E7F6D6F8A9E18ABF62BF901ED6FF50B1B5B00508BDF8114415F5
+SHA256 run2 = 52F973638EA4E7F6D6F8A9E18ABF62BF901ED6FF50B1B5B00508BDF8114415F5
+byte-identical: True
