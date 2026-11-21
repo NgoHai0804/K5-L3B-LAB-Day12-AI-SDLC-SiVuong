@@ -160,4 +160,12 @@ def validate_tuning(t):
                 raise BadInput(f"menu.{dish_id}: nguyên liệu lạ {kind!r} (hợp lệ: {KINDS})")
             if isinstance(qty, bool) or not isinstance(qty, int) or qty <= 0:
                 raise BadInput(f"menu.{dish_id}.recipe.{kind} phải là số nguyên dương")
+    fr = t.get("freshness")  # v1.2 (ADR-0002)
+    if fr is not None:
+        if not isinstance(fr, dict):
+            raise BadInput("tuning.freshness phải là object")
+        _between("freshness.initial", fr.get("initial"), 0, 100)
+        _between("freshness.gather_decay_per_s", fr.get("gather_decay_per_s"), 0, 100)
+        _between("freshness.quan_decay_per_s", fr.get("quan_decay_per_s"), 0, 100)
+        _between("freshness.spoiled_below", fr.get("spoiled_below"), 0, 100)
     validate_day_plan(t)

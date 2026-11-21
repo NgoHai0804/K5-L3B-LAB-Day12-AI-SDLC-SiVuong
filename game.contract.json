@@ -106,6 +106,7 @@
       {"day": 5, "dishes": {"lau_mam": 1, "lau_ca_linh_dien_dien": 1, "ca_loc_nuong_trui": 1},
        "ingredients": {"ca_linh": 5, "ca_keo": 1, "keo_neo": 1, "bong_dien_dien": 2, "ca_loc": 1}}
     ],
-    "score": {"reputation_multiplier": 100}
+    "score": {"reputation_multiplier": 100},
+    "freshness": {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30}
   }
 }
