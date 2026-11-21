@@ -24,7 +24,7 @@ flowchart LR
 
 | Thành viên | GitHub handle | Team | Lát (Phase 1) | Module chính | Vai quy trình |
 |---|---|---|---|---|---|
-| Ngô Ngọc Hải | | Sáng | **Lát 1** | `sim/gather` | **Integrator** (giữ `docs/contracts/`, gắn tag) · Team lead Sáng |
+| Ngô Ngọc Hải | NgoHai0804 | Sáng | **Lát 1** | `sim/gather` | **Integrator** (giữ `docs/contracts/`, gắn tag) · Team lead Sáng |
 | Trần Minh Đức | | Sáng | **Lát 2** | `sim/gather` | **PO** (hỏi Anh Năm/giảng viên, giữ `docs/clarify.md`) |
 | Trần Thị Nhài | | Sáng | HUD/QA + hỗ trợ | `client/ui` (gather) | **Scrum/Release** (mốc bàn giao, standup, release) |
 | Bùi Đình Quý Anh (2A202603969) | | Tối | **Lát 3** | `sim/quan` | **QA lead** (bộ test + ma trận truy vết) · Team lead Tối |
@@ -175,3 +175,158 @@ cả hai ⇒ thoát 2). Chi tiết đầy đủ + checklist ở [`docs/contracts
 - **Hợp đồng kho:** hai team xác nhận §1 trong `docs/contracts/README.md` trước khi code; đổi ⇒ mở ADR.
 - **Số liệu:** chỉ đọc từ `game.contract.json`; ngẫu nhiên chỉ qua `Streams` (tên luồng riêng); không hard-code.
 - **Bằng chứng:** mỗi việc xong để lại lệnh đã chạy + kết quả (PR hoặc `docs/proof/`).
+
+---
+
+# Phase 2 — Một ngày ở chợ nổi (hạn tag `phase-2` lúc 1:55)
+
+> Ticket: TICKET-02 · Contract **v1.1** · 55 phút (1:00–1:55). Hai buổi đã nối được; nay chơi trọn **một vòng ngày**:
+> sáng Út Sen xem thực đơn để biết cần tìm gì → tối quán dùng phần mang về → cuối ngày mua nâng cấp cho lần lặn sau.
+> Quy ước AC: `AC-P2-xx`. Đọc số từ `game.contract.json` v1.1, **không hard-code**; ngẫu nhiên chỉ qua `Streams(seed)`;
+> cùng seed ⇒ JSONL giống từng byte. **Làm lõi trước, mở rộng sau.**
+
+## Lõi — số liệu chuẩn (ticket §1.1–1.3, §2)
+
+### Buổi sáng — Lặn & hái
+- **Thời lượng** 180 s (10.800 tick). **Vùng nước** `x∈[0,100]`, `d∈[0,30]`, chặn ở mép; mặt nước `d≤0.5`; nông `d<10`, giữa `10≤d<20`, sâu `d≥20`.
+- **Bến/xuất phát** tâm `[2,0]` r=3 m, xuất phát `[2,0]` hướng 0° (+x). **Bơi** 4.0 m/s, đạt tốc độ hoặc dừng ≤ 0.1 s (6 tick).
+- **Oxy & ngạt**: cơ sở 30 s (1.800 tick); dưới nước −1/tick, mặt nước +6/tick, kẹp max. Dưới nước oxy 0 ⇒ −1 Máu mỗi 60 tick (**kể cả bước vừa chạm 0**), reset nhịp khi oxy >0 hoặc lên mặt. Ngạt **xuyên bất tử, không rơi hàng**.
+- **Giỏ & hái**: 12 ô, mỗi nguyên liệu 1 ô; hái ở mặt nước ≤ 2.0 m, lấy 1, mọc lại 20 s (1.200 tick); **xét bến trước nút hái**. Nút: bông điên điển N1[12,0], N2[28,0] · bông súng N3[44,0], N4[60,0] · **kèo nèo N5[76,0], N6[90,0]**.
+- **Bắt cá** `catch` (Space), chỉ dưới nước, đàn gần nhất ≤ 2.0 m **hòa theo id**, cần đủ chỗ cho **cả đàn**, hồi 0.5 s (30 tick) từ lần bắt thành công. Yield: linh 3, lóc 1, **kèo 2**.
+- **Đàn cá bơi**: 1.5 m/s trong `x∈[4,96]`; linh `d∈[3,12]`, lóc `[8,20]`, kèo `[22,28]`. Đổi hướng theo seed ở bước bơi thứ **120, 240…** *trước khi di chuyển*. Tới mép thì phản xạ phần quãng đường còn lại và đảo thành phần hướng **vuông góc** với mép; chạm góc đảo cả hai.
+- **Điểm sinh**: `x∈{15,30,45,60,75,90}`; linh `d∈{5,10}`, lóc `{10,16}`, kèo `{24,27}` (36 cặp loài–vị trí, **30 vị trí hình học**). Đầu ca **8 đàn** ở 8 điểm khác nhau, trần **12 đàn**. Tại `phase_tick = 360·k` (k≥1), *sau khi cá bơi*, sinh tối đa 1 đàn nếu còn dưới trần và có điểm cách mọi đàn đang sống > 1 m; bỏ lượt nếu hết điểm. Loài chọn theo trọng số linh **40%** / lóc **30%** / kèo **30%** (chuẩn hóa lại theo loài còn điểm hợp lệ), rồi chọn đều một điểm của loài và lấy hướng ban đầu theo seed. **Cá mới tham gia từ bước sau.**
+- **Kết thúc**: `docked` (tương tác trong bán kính bến), `time` (hết giờ ở bất kỳ độ sâu nào) — cả hai **giữ giỏ**; `fainted` (Máu 0) — **mất toàn bộ giỏ**.
+
+### Cá Sấu Năm Chèo, Máu và ngất
+- Máu cơ sở **3**, hồi đầy đầu mỗi Ngày. Cá Sấu ở `d∈[10,30]`: **M1** tuần tra `[60,24]→[64,24]`; **M2** từ **Ngày 3**, `[85,18]→[89,18]`. Waypoint đầu = vị trí xuất phát; trong gather độc lập dùng bố trí Ngày 1.
+- `patrol` 1.0 m/s tới waypoint, đổi sang mục tiêu kia cho bước sau khi đến. Người chơi `d≥10` và cách ≤ 10 m ⇒ chuyển `chase`, bơi 3.0 m/s; về `patrol` khi cách > 16 m hoặc người chơi lên `d<10`. Chặn theo biên map + dải độ sâu của loài.
+- Sau khi **cả hai** di chuyển: cách ≤ 1.5 m, người chơi `d≥10`, hết bất tử ⇒ chạm −1 Máu, bỏ `floor(đang mang/2)` theo **LIFO** (nhặt sau mất trước), đặt bất tử **90 tick**. Tối đa **1 hit/bước**, chọn con gần nhất, hòa theo id. Trong bất tử không phát hit, không chuyển sang recoil do chạm.
+- Con gây hit vào `recoil` **60 bước** (từ bước sau), lùi theo hướng xa người chơi **đã chốt lúc chạm** (trùng tâm dùng +x), mỗi bước **2/60 m** trước chặn mép và **không gây hit**. Hết recoil về `patrol`. Máu chạm 0 ⇒ **ngất ngay**, vẫn mở quán tối với kho bàn giao **rỗng**.
+
+### Buổi tối — Mở quán
+- 180 s. Phòng `x∈[0,16]`, `z∈[0,10]`, xuất phát `[8,5]`, 4.0 m/s ≤ 6 tick; chặn biên, đi xuyên nội thất. Bếp **B1[2,8], B2[5,8]**; bàn **T1[9,2], T2[13,2], T3[9,6], T4[13,6]**.
+- Tương tác ≤ 1.5 m; chọn gần nhất, hòa **ưu tiên bếp trước bàn rồi id**; tay cầm 1 món. Bếp lấy đơn `reserved` **cũ nhất** theo `order_tick` rồi id bàn.
+- **Khách**: lượt đầu tick **120**, sau đó `120 + 900·k` (k≥0) nếu có bàn trống; đến **ghế trống id nhỏ nhất**, giữ nguyên liệu khi gọi món. Kiên nhẫn 60 s (3.600 tick), ăn 10 s (600 tick).
+- **Boa & uy tín**: boa `floor(giá × 0.2)` nếu còn ≥ 50% kiên nhẫn (≥ 30 s) lúc giao; thu boa dương ⇒ uy tín **+0.2**. Uy tín đầu **3.0**, kẹp `[0,5]`. Khách hết kiên nhẫn khi ca còn giờ ⇒ **−0.5**.
+- **Đóng ca**: khách còn ăn **trả ngay**, khách còn chờ rời **không trừ uy tín**; dọn món và phần giữ. `burn_s: null` trong lõi. **Điểm** = `earned + 100 × floor(reputation)` (earned = tiền món + boa).
+- **6 món** (dữ liệu): `ca_loc_nuong_trui` (ca_loc×1, 6 s, 60) · `goi_bong_sung` (bong_sung×2, 4 s, 40) · `lau_ca_linh_dien_dien` (ca_linh×3+bong_dien_dien×1, 10 s, 120) · `canh_chua_ca_loc` (ca_loc×1+bong_dien_dien×1, 8 s, 90) · `ca_keo_nuong` (**ca_keo**×2, 6 s, 70) · `lau_mam` (ca_linh×2+**ca_keo**×1+**keo_neo**×1+bong_dien_dien×1, 12 s, 200). Hai nguyên liệu mới: **`ca_keo`**, **`keo_neo`**.
+
+### Vòng ngày, kế hoạch và Shop
+- Chuỗi: **DayIntro → gather → EveningIntro → quan → DayResult → Shop → DayIntro** (hoặc tổng kết sau Ngày 5). Đầu Ngày, Má Tư công bố món định nấu + tổng nguyên liệu cần; HUD sáng hiện đã lấy/cần. Khi cập bến/hết giờ/ngất, quán mở với kho bàn giao. Tiền, earned, uy tín, cấp nâng cấp **giữ qua Ngày**. Oxy và Máu hồi đầy theo cấp, giỏ làm mới, kho dư bị bỏ **sau Shop**.
+- Trong `day`, khách chọn **đều theo seed** từ các id món trong kế hoạch **có đủ nguyên liệu** (sau khi trừ phần đang giữ); số suất chỉ để tính mục tiêu thu gom, khách **vẫn gọi tiếp** món đủ nguyên liệu kể cả khi đã bán đủ suất; quán chạy riêng dùng **cả 6 món**; có bàn mà thiếu món ⇒ `no_dish`; không thưởng riêng khi đủ danh sách.
+- Ngày chỉ hoàn tất khi **Shop đóng**, kể cả Ngày cuối. Một Ngày **không pause ≤ 22.200 tick**. Shop tự đóng sau **600 tick hoạt động**.
+- **Shop**: `oxygen` c1 **200 → 45 s (2.700)**, c2 **400 → 60 s (3.600)**; `hp` c1 **250 → 4 Máu**, c2 **500 → 5 Máu**. Mua cấp kế tiếp 1 lần/cấp; **đủ đúng giá vẫn mua được**; trừ `money`, giữ `earned` và điểm; cấp vừa mua hiển thị ngay nhưng **hiệu lực từ Ngày kế tiếp**; thiếu tiền hoặc đã tối đa ⇒ `buy_failed`.
+- **Menu/pause/HUD**: Menu chính Chơi/Thoát. DayIntro hiện Ngày + danh sách Má Tư đọc, tự chuyển sau 4 s hoặc nhấn phím. EveningIntro hiện số lượng nhập kho + món nấu được. DayResult hiện khách phục vụ/bỏ, tiền, boa, thay đổi uy tín. Summary hiện tổng tiền/điểm/uy tín/món bán chạy. Esc/P tạm dừng: làm mờ nền, Tiếp tục/Về menu (+Cài đặt nếu có mở rộng), **dừng đồng hồ và mọi timer gameplay kể cả trong Shop**. HUD sáng: Máu, oxy (<25% đổi màu/nháy), thời gian (≤30 s đổi màu), độ sâu, giỏ theo loại, danh sách cần lấy, hồi bắt; gợi ý hái/cập bến, **“Thủy quái!” + viền tím**, **“Hết hơi!”**. HUD quán: đồng hồ ca, tiền ca, uy tín, món + kiên nhẫn từng bàn (<25% đổi màu), tiến độ bếp/trạng thái chín, món đang cầm, kho. Chữ không chân **≥ 18 px ở 1280×720**. Headless một Ngày không pause ≤ **20 s**; bản chơi ≥ **30 FPS**.
+
+### Kế hoạch ngày D1–D5 (ticket §2)
+| Ngày | Món × suất | Nguyên liệu cần | Ô (thực tế) |
+|---|---|---|---|
+| **D1** | ca_loc_nuong_trui ×3, goi_bong_sung ×3 | ca_loc ×3, bong_sung ×6 | 9 |
+| **D2** | ca_loc_nuong_trui ×2, lau_ca_linh_dien_dien ×2 | ca_loc ×2, ca_linh ×6, bong_dien_dien ×2 | 10 |
+| **D3** | goi_bong_sung ×2, canh_chua_ca_loc ×2, ca_keo_nuong ×2 | bong_sung ×4, ca_loc ×2, bong_dien_dien ×2, ca_keo ×4 | 12 |
+| **D4** | lau_mam ×1, ca_loc_nuong_trui ×2, goi_bong_sung ×1 | ca_linh ×2, ca_keo ×1, keo_neo ×1, bong_dien_dien ×1, ca_loc ×2, bong_sung ×2 | 9 (11) |
+| **D5** | lau_mam ×1, lau_ca_linh_dien_dien ×1, ca_loc_nuong_trui ×1 | ca_linh ×5, ca_keo ×1, keo_neo ×1, bong_dien_dien ×2, ca_loc ×1 | 10 (12) |
+
+> `ingredients` tính bằng tổng công thức × số suất. Khách có thể gọi bất kỳ món nào trong 6 món (khi đủ nguyên liệu), số suất chỉ là mục tiêu thu gom.
+
+## Chia lát Phase 2 (4 lát song song · ticket §5)
+
+Dùng **fixture cố định** để người làm `day` tích hợp sớm với hai buổi đang có. Kiểm chéo lát, pair, đổi vai tự do; ghi `Co-authored-by:` khi cùng làm một commit.
+
+| Lát | Nội dung | Người | AC |
+|---|---|---|---|
+| 1 | Số chuẩn + cá bơi/sinh | Hải | `AC-P2-01`, `AC-P2-02` |
+| 2 | Cá Sấu + Máu/ngất | Đức | `AC-P2-03`, `AC-P2-04` |
+| 3 | 2 bếp/4 bàn + 6 món + kế hoạch ngày | Quý Anh | `AC-P2-05..07` |
+| 4 | `day` + Shop + pause + menu/HUD | Tùng, Sơn | `AC-P2-08..12` |
+| QA/HUD | HUD sáng + QA + smoke + mốc | Nhài | `AC-P2-11`, `AC-P2-13` |
+
+### 🐟 Hải — Lát 1: Số chuẩn + cá bơi/sinh (`chonoi/sim/gather.py`, `game.contract.json` v1.1)
+- Cập nhật tuning v1.1: oxy 2.700/3.600 tick, `fish_yield` 3 loài, nút **N5/N6**, dải độ sâu + điểm sinh + trọng số loài; giữ `AC-P1-01..04` **xanh** với số chuẩn.
+- **Cá bơi**: 1.5 m/s theo dải loài; đổi hướng seed ở bước 120, 240… **trước** di chuyển; phản xạ mép phần dư + đảo thành phần vuông góc (góc đảo cả hai).
+- **Sinh cá**: đầu ca 8 đàn/8 điểm, trần 12; `phase_tick=360k` sinh ≤1 đàn (khoảng cách >1 m, trọng số loài chuẩn hóa theo loài còn điểm), hướng theo seed; **cá mới vào từ bước sau**.
+- **Vai Integrator**: giữ `docs/verification/phase-2.md`, gắn tag `phase-2` **< 1:55**.
+- **AC**: `AC-P2-01` (tuning v1.1) · `AC-P2-02` (bơi + sinh).
+
+### 🐊 Đức — Lát 2: Cá Sấu + Máu/ngất (`chonoi/sim/gather.py`)
+- Species `ca_sau` + spawns M1 (Ngày 1) / M2 (từ Ngày 3), waypoint đầu = vị trí xuất phát; `patrol` 1.0 / `chase` 3.0 m/s, phát hiện ≤10 m, rời >16 m hoặc `d<10`, chặn biên + dải `d∈[10,30]`.
+- **Chạm**: ≤1.5 m, `d≥10`, hết bất tử ⇒ −1 Máu, bỏ `floor(mang/2)` **LIFO**, bất tử 90 tick; ≤1 hit/bước gần nhất hòa id; `monster_hit` (`monster_id,hp,lost,pos`); `recoil` 60 bước 2/60 m/bước theo hướng đã chốt.
+- **Ngất**: Máu 0 ⇒ `faint` (`cause:"monster"`), mất giỏ, vẫn mở quán với kho rỗng. **Phối với Hải** vì dùng chung `faint`/timer Máu.
+- **AC**: `AC-P2-03` (Cá Sấu tuần tra/săn/recoil) · `AC-P2-04` (Máu/ngất/bất tử/LIFO).
+
+### 🍜 Quý Anh — Lát 3: 2 bếp/4 bàn + 6 món + kế hoạch ngày (`chonoi/sim/quan.py`, dữ liệu)
+- Thêm **B2, T2–T4**; giữ thứ tự tương tác (khoảng cách, bếp trước bàn, id). Thêm **6 món** + 2 nguyên liệu mới dưới dạng dữ liệu.
+- Trong `day`: **lọc menu theo id món trong kế hoạch trước khi lọc nguyên liệu khả dụng**; khách chọn đều seed trong món đủ nguyên liệu (trừ phần đang giữ); đủ suất vẫn gọi tiếp; thiếu món ⇒ `no_dish`. Bếp lấy đơn `reserved` cũ nhất theo `order_tick` rồi id bàn.
+- **Vai QA lead**: ma trận `docs/verification/phase-2.md` + bằng chứng `docs/proof/phase-2/`.
+- **AC**: `AC-P2-05` (2 bếp/4 bàn + thứ tự) · `AC-P2-06` (6 món + dữ liệu menu) · `AC-P2-07` (kế hoạch D1–D5 + lọc menu theo kế hoạch).
+
+### 🎮 Tùng — Lát 4a: `day` + Shop (`chonoi/sim/day.py`, `chonoi/sim/shop.py`)
+- Vòng **DayIntro → gather → EveningIntro → quan → DayResult → Shop → …**; `--mode day --days 1..5`; bàn giao kho **trong bộ nhớ**; phát `day_start`, `day_plan`, `phase_start`; `days_completed`; đủ Ngày ⇒ `reason:"days_complete"`. Giữ tiền/earned/uy tín/cấp qua Ngày.
+- **Shop**: `max_ticks`, upgrades `oxygen`/`hp`; mua **cấp kế tiếp một lần/cấp**, đủ đúng giá vẫn mua, `buy_failed` (funds/max_level/unknown); cấp vừa mua **hiển thị ngay**, **hiệu lực Ngày kế** (`upgrades` vs `active_upgrades`); `shop_end` (`done`/`time`), tự đóng 600 tick. Mở Ngày mới mới **sao cấp đã mua → `active_upgrades`**.
+- **AC**: `AC-P2-08` (vòng `day`) · `AC-P2-09` (`day_plan` + Shop + `active_upgrades`).
+
+### 🎨 Sơn — Lát 4b: Contract v1.1 + pause + HUD quán (`game.contract.json`, `chonoi/headless.py`, `client/ui`)
+- **Manifest v1.1**: `--mode day`, `--days`, scenario `day`, `random_fish`, fixtures; snapshot thêm `paused`, `day/day_plan/upgrades/active_upgrades`, `stock` + `time_left_ticks` (Shop); event vỏ mode `day` thêm `day`; `--inventory`/`--inventory-out` **chỉ 2 mode độc lập**; nút mới `pause`, `shop_done`, `attack`, `photo` (cạnh lên), `buy` (frame khai báo).
+- **Pause**: Esc/P cả 3 mode; **xét cạnh pause trước**; `paused`/`resumed`; đứng yên `sim_tick`/`phase_tick`/lịch/timer (kể cả Shop); cạnh lên kế phát `resumed` và chạy gameplay **ngay trong bước đó**.
+- **HUD quán + menu**: DayIntro/EveningIntro/DayResult/Summary; pause làm mờ nền. Cập nhật `AGENTS.md` + **≥2 skill** ở `.agents/skills/`.
+- **AC**: `AC-P2-10` (pause) · `AC-P2-11` (menu + HUD) · `AC-P2-12` (manifest v1.1 + CLI + scenario/output).
+
+### 🧪 Nhài — HUD sáng + QA + mốc (client/ui gather, `tests/`, `docs/`)
+- **HUD sáng**: Máu, oxy (<25% đổi màu/nháy), thời gian (≤30 s đổi màu), độ sâu, giỏ theo loại, danh sách cần lấy, hồi bắt; gợi ý hái/cập bến; **“Thủy quái!” + viền tím**; **“Hết hơi!”**. Chữ **≥ 18 px** ở 1280×720.
+- **QA**: giữ test P1 xanh; chạy **smoke tích hợp** `gather --inventory-out → quan --inventory`; **regression P1** với số chuẩn.
+- **Scrum/Release**: standup, `docs/plan/phase-2.md`, mốc tag, hỗ trợ lát chậm ở phút 20.
+- **AC**: `AC-P2-11` (HUD sáng) · `AC-P2-13` (smoke tích hợp + regression P1).
+
+## Mở rộng Phase 2 (nhóm 6 người cần ≥ 2 mục · ticket §3)
+
+Chỉ sau khi **lõi đúng**; phần tự thêm **tắt ở headless** hoặc giữ nguyên kết quả theo Test Contract. Khai **mã ở `extensions` tại gốc manifest** cho mục có mã trong Test Contract (`weapon`, `net`, `snake`, `burn`, `vendor`, `ca_ho`). Ghi README “Sáng tạo của nhóm” + bằng chứng lõi vẫn đúng.
+
+- **`AC-P2-EX-01` Lao xua + weapon**: Q (attack) cần mua cấp 1; hồi 3 s (180 tick) từ lần dùng hợp lệ kể cả không trúng. c1 300 r4 m choáng 2 s, c2 600 r6 m choáng 3 s; duyệt mục tiêu theo id, đẩy mỗi con 3 m ra xa (chặn mép, trùng tâm +x), choáng **ghi đè** recoil/choáng cũ; đứng yên + không hit 120/180 bước (kể cả bước bị Lao); hết choáng về `patrol` ở vị trí sau đẩy.
+- **`AC-P2-EX-02` Vợt hút cá + net**: c1 250 r4.0 tối đa 2 đàn/lần, c2 500 r6.0 tối đa 3; từ cấp 1 duyệt theo id, đếm số đàn bắt thành công; đàn thiếu chỗ phát `hold_full` và **giữ lại**, xét đàn kế; chỉ đặt hồi khi có đàn bắt thành công; **cấp 0 dùng luật gần nhất của lõi**.
+- **`AC-P2-EX-03` Rắn Hổ Mây (snake)**: M3 từ Ngày 1, `[72,14]↔[76,14]`, `d∈[8,20]`; patrol 1.0 / chase 3.5 m/s, phát hiện ≤ 8 m, rời chase khi > 16 m hoặc `d<8`; dùng luật chạm/recoil chung + ngưỡng độ sâu của loài.
+- **`AC-P2-EX-04` Cháy món (burn)**: `burn_s: 20`. `ready_ticks > 1200` ⇒ bỏ món, nguyên liệu mất, bếp **rảnh ngay**; thử giữ lại ngay cho đơn (đủ ⇒ `reserved`, thiếu ⇒ `unfulfillable`, khách chờ tới hết kiên nhẫn). **Đúng 1.200 tick vẫn bưng được.**
+- **`AC-P2-EX-05` Chợ Chú Sáu (vendor)**: trong Shop, bán cá lóc 20 / cá linh 8 / cá kèo 10 / mỗi loại bông (điên điển, súng, kèo nèo) 5. Giá mua `floor(giá bán × 1.5)`, hàng bán cho người chơi **không giới hạn**, mỗi lệnh 1 đơn vị. Tiền bán cộng `money` + `earned`. Hàng mua **chờ nhập thẳng kho quán tối Ngày kế**, tách khỏi `gather_end.inventory`.
+- **`AC-P2-EX-06` Sổ tay & Cá Hô (ca_ho)**: một con H1 1.0 m/s, chọn vị trí từ điểm sinh chuẩn `d≥10` theo seed, bơi `x∈[4,96]`, `d∈[10,30]`, phản xạ mép như cá thường. Catch hợp lệ trúng ⇒ `released` **sau** event bắt cá thường, **không thêm hàng, không tự đặt hồi**. F (photo) trong ≤ 6 m cộng **0.5 uy tín**, một lần/Ngày. Sổ tay ghi 8 loài đã gặp.
+- **`AC-P2-EX-07` Settings & âm thanh**: âm lượng Master/Music/SFX **lưu giữa các lần mở game**.
+- **Phân công gợi ý**: Tùng/Quý Anh (weapon, burn, vendor) · Sơn (net, ca_ho, settings) · Nhài (UI/âm thanh). Ghi README + `CREDITS.md`.
+
+## Mốc & lịch Phase 2 (55 phút · ticket §5)
+
+| Phút | Việc | Ai chủ trì |
+|---|---|---|
+| 0–5 | Lên lại kế hoạch; **so số chuẩn với giả định cũ**; chốt giao diện chuyển pha; chia người + phần phụ thuộc theo `AC-P2-xx` | cả nhóm (Hải/Đức) |
+| 5–20 | Build 4 lát; cập nhật **contract v1.1** + cấu hình/dữ liệu chuẩn; chuẩn bị ca smoke | 4 lát song song |
+| **20** | **Smoke tích hợp** `gather --inventory-out → quan --inventory`; đối chiếu snapshot kho tick 0; lưu `docs/proof/phase-2/integration.*`; standup 2–3′ | Nhài · Quý Anh |
+| 20–35 | Build tiếp, phối hợp các lát, chốt luồng `day` | cả nhóm |
+| 35–45 | Smoke `day --days 1`; nhiều Ngày kiểm cấp nâng cấp; **regression P1** với số chuẩn; `docs/verification/phase-2.md`; **gắn tag** | Quý Anh · Hải |
+| 45–50 | Retro nhanh → `docs/retro.md` | Nhài |
+| 50–55 | Dự phòng; **đẩy tag `phase-2` chậm nhất 1:55** | Hải |
+
+**Smoke bàn giao (bắt buộc):**
+```bash
+<headless_cmd> --mode gather --seed 42 --scenario dock.json --inputs dock-inputs.json --ticks 1 --out gather-p2.jsonl --inventory-out catch.json
+<headless_cmd> --mode quan   --seed 42 --inventory catch.json --ticks 0 --out quan-p2.jsonl
+# dock.json = {"gather":{"hold":["ca_loc","bong_sung","bong_sung"]}} ; dock-inputs.json = {"frames":[{"tick":0,"interact":true}]}
+# snapshot quan tick 0 phải có stock {"bong_sung":2,"ca_loc":1}
+<headless_cmd> --mode day --seed 42 --days 1 --ticks 22200 --out day-p2.jsonl
+```
+
+## Định nghĩa hoàn thành Phase 2 (DoD · ticket)
+
+- [ ] `contract_version:"1.1"`, **tuning chuẩn**, đủ **6 nguyên liệu** + **6 món** theo dữ liệu. Cá bơi/sinh, Cá Sấu, Máu/ngất, **2 bếp/4 bàn** hoạt động đúng.
+- [ ] Chơi trọn **vòng ngày** với menu, pause, HUD. `--mode day` công bố đúng kế hoạch **D1–D5**, chốt Ngày khi **Shop đóng**, áp đúng cấp oxygen/hp **từ Ngày kế**.
+- [ ] Smoke tích hợp **có bằng chứng**. **Regression P1** còn hiệu lực đạt với số chuẩn; test thay đổi **có ghi lý do**. `docs/verification/phase-2.md` + bằng chứng **khớp commit gắn tag**.
+- [ ] Các lát đã **tích hợp trong fork chung**, có bằng chứng đóng góp từng người. `docs/clarify.md`, `docs/ai-usage-log.md`, `docs/retro.md` đã cập nhật.
+- [ ] Nếu làm mở rộng: README khai mục đã làm + test/bằng chứng.
+- [ ] **Đẩy tag `phase-2`** trỏ commit bàn giao trên `main` **chậm nhất 1:55**.
+
+## Checklist nhanh Phase 2
+
+- [ ] **Hải** — số chuẩn + cá bơi/sinh (`AC-P2-01..02`) + tag.
+- [ ] **Đức** — Cá Sấu + Máu/ngất (`AC-P2-03..04`).
+- [ ] **Quý Anh** — 2 bếp/4 bàn + 6 món + kế hoạch ngày (`AC-P2-05..07`) + ma trận truy vết.
+- [ ] **Tùng** — `day` + Shop (`AC-P2-08..09`).
+- [ ] **Sơn** — contract v1.1 + pause + HUD quán (`AC-P2-10..12`) + `AGENTS.md`/skills.
+- [ ] **Nhài** — HUD sáng + QA + smoke/regression (`AC-P2-11,13`) + mốc.
+- [ ] Bàn giao: smoke tích hợp ra đúng `stock` tick 0; `day --days N` chạy.
+- [ ] Tag `phase-2` < 1:55 + `docs/verification/phase-2.md` + `docs/proof/phase-2/`.
