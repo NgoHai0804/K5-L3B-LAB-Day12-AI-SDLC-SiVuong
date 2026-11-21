@@ -5,6 +5,15 @@
   "build_cmd": "true",
   "run_cmd": "python3 -m chonoi.live --mode gather",
   "headless_cmd": "python3 -m chonoi.headless",
+  "modes": ["gather", "quan", "day"],
+  "input_contract": {
+    "buttons": ["interact", "catch", "pause", "shop_done", "attack", "photo"],
+    "commands": {"buy": ["oxygen", "hp"]}
+  },
+  "snapshot_contract": {
+    "common": ["tick", "sim_tick", "mode", "phase", "phase_tick", "state", "time_left_ticks", "money", "earned", "reputation", "score", "paused"],
+    "day": ["day", "day_plan", "upgrades", "active_upgrades", "stock"]
+  },
   "tuning": {
     "tick_hz": 60,
     "gather": {
