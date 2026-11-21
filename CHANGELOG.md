@@ -1,11 +1,11 @@
 # Changelog
 
-## v1.0.0 — bổ sung cửa sổ chơi (2026-11-21)
-- Sáng tạo (chỉ `chonoi.play`, headless không đổi): thả đồ nhặt nhầm (Q), đóng quán sớm khi vắng (C), minigame sơ chế giảm thời gian nấu, va chạm với bếp/quầy, 6 món phụ, 3 nhiệm vụ phụ mỗi Ngày, thoại khách.
+## v1.0.0 — Phase 4 + bản chơi cuối (2026-11-21) 🎉
+
+### Cửa sổ chơi (chỉ `chonoi.play`, headless không đổi)
+- Sáng tạo: thả đồ nhặt nhầm (Q), đóng quán sớm khi vắng (C), minigame sơ chế giảm thời gian nấu, va chạm với bếp/quầy, 6 món phụ, 3 nhiệm vụ phụ mỗi Ngày, thoại khách.
 - Gộp hai đường tương phản cao trong `index.html` về một biến `hiC` (phím H, menu tạm dừng, lưu `localStorage`); bong bóng thoại khách đổi tên `custSay` để không đè `say()` của phụ đề SFX.
 - Test: `tests/test_play.py` thêm 7 test (thả đồ, đóng sớm, sơ chế, va chạm, món phụ, nhiệm vụ, headless không có extras). Toàn bộ 122 test xanh.
-
-## v1.0.0 — Phase 4 (2026-11-21) 🎉
 
 ### Contract v1.3 (Phase 4 — "Bench + đóng gói + Release") — tương thích ngược
 - Thêm `bench_cmd` (benchmark **có render**, cảnh sáng `gather`, xuất `avg_fps`, `p1_low_fps`, `frames`, `measured_s`, `load_ms`), `soak_cmd` (soak **headless nhiều Ngày**, bot tất định, `days_completed`/`crashes`), và `extensions: ["leaderboard", "subtitles"]`.
