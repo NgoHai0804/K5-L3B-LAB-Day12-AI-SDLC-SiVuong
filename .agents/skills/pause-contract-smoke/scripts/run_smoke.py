@@ -30,11 +30,11 @@ def main():
 
     assert [e["name"] for e in paused] == ["paused"]
     assert [e["name"] for e in resumed][0] == "resumed"
-    assert frozen["paused"] is True
+    assert frozen["state"] == "paused"
     assert frozen["sim_tick"] == before["sim_tick"]
     assert frozen["phase_tick"] == before["phase_tick"]
     assert frozen["time_left_ticks"] == before["time_left_ticks"]
-    assert after["paused"] is False
+    assert after["state"] == "playing"
     assert after["sim_tick"] == before["sim_tick"] + 1
     assert after["phase_tick"] == before["phase_tick"] + 1
     assert after["time_left_ticks"] == before["time_left_ticks"] - 1

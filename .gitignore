@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 *.jsonl
 !tests/fixtures/*.jsonl
+!docs/proof/**/*.jsonl
 .DS_Store
 saves/
 link.md
