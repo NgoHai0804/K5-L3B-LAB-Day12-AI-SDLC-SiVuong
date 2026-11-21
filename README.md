@@ -27,6 +27,13 @@ Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headl
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
 
+## Sáng tạo của nhóm
+
+- **MR-1 — Cảm hứng *Dave the Diver* phiên bản Chợ Nổi Miền Tây** (Nguyễn Thanh Tùng — Content Lead):
+  - **Sổ tay Tầng nước & Thực đơn Nhà bè** (`chonoi/content/dave_theme.py`, `docs/content/dave-the-diver-concept.md`): Phân tầng độ sâu sông Chín Khúc cho 4 nguyên liệu cốt lõi (`0m`, `5–10m`, `10–16m`), mô tả thực đơn kiểu *Bancho Sushi* cho 3 món đặc sản và hệ thống lời thoại giọng Nam Bộ phản ứng theo từng sự kiện bếp/bàn.
+  - **Chợ Nổi Review (`ServiceReviewTracker`)**: Lấy cảm hứng từ app *Cooksta* trong *Dave the Diver*, chấm chuỗi phục vụ có boa (Tip Streak) và xếp hạng 1★–5★ cho nhà bè chỉ bằng cách đọc dòng event.
+  - **Bằng chứng lõi vẫn đúng**: Toàn bộ `chonoi/content/` tách biệt khỏi `chonoi/sim/*` và tắt mặc định ở chế độ headless (`enabled=False`). Kết quả chạy `python -m unittest tests.test_quan_lat4 -v` đạt 11/11 test pass, bao gồm kiểm tra JSONL giống từng byte qua `python -m chonoi.headless` (xem `docs/proof/phase-1/lat4-quan.md`).
+
 ## Lịch 3 giờ
 
 | Mốc | Phase | Hạn tag |
