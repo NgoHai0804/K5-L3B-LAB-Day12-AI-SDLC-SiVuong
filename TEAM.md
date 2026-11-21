@@ -1,10 +1,11 @@
 # TEAM
 
-**Tên nhóm:** cho-noi-5  **Số người:** 5  (khớp `team_size` trong `game.contract.json`)
+**Tên nhóm:** cho-noi-5  **Số người:** 6  (khớp `team_size` trong `game.contract.json`)
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
 | Ngô Ngọc Hải | NgoHai0804 | `sim/day` · `sim/quan` | Integrator (giữ `docs/contracts/`, gắn tag + Release) | sim/gather |
+| Trần Minh Đức | tmduc23 | `sim/gather` | PO (giữ `docs/clarify.md`, hỏi giảng viên) | sim/gather (Hải) |
 | Bùi Quý Anh | buiquyanh9-ai | `web` · `client/ui` | QA lead | sim/quan |
 | Giang Sơn | son309 | `sim/gather` | PO (giữ `docs/clarify.md`, hỏi giảng viên) | client/ui |
 | Chấn Hồ | chanhochust | `headless` · `contract` | Scrum/Release | sim/day |
@@ -19,10 +20,10 @@
 - Khi ai đó trễ hoặc vướng quá 10 phút: báo ngay trong kênh; người dự phòng ở cột cuối nhận việc.
 - Giờ standup giữa phase: 2–3 phút đầu mỗi phase, mỗi người một dòng vào `docs/standup.md`.
 - Cách đọc code của nhau: mỗi người đọc lát kế bên; luật/hợp đồng đổi thì mở PR hoặc xem trực tiếp trước khi gộp.
-- Cách làm việc với Git: mỗi lát một nhánh ngắn (hoặc push thẳng nhánh chính khi đã xanh test); Integrator giữ quyền gắn tag `phase-1`…`phase-4` và Release `v1.0.0`.
+- Cách làm việc với Git: mỗi lát một nhánh ngắn (hoặc push thẳng nhánh chính khi đã xanh test); Integrator giữ quyền gắn tag `phase-1`...`phase-4` và Release `v1.0.0`.
 
 ---
 
 ## Ghi chú lịch sử (từ nhánh `main` trước khi gộp)
 
-Bản `TEAM.md` cũ trên `main` mô tả kế hoạch 6 người chia 2 team / 4 lát cho Phase 1–3. Nội dung đó **được thay bằng bảng 5 người ở trên để khớp `team_size:5` và contract v1.3**; kế hoạch chi tiết từng phase vẫn còn trong lịch sử git, `docs/prd/` và `docs/plan/phase-3.md`.
+Bản `TEAM.md` cũ trên nhánh mô tả kế hoạch **6 người chia 2 team / 4 lát** (Team Sáng: Hải · Đức · Nhài; Team Tối: Quý Anh · Tùng · Sơn). Đội hình 6 người được giữ nguyên, khớp `team_size:6` và contract v1.3; kế hoạch chi tiết từng phase nằm trong `docs/plan/` và `docs/prd/`.

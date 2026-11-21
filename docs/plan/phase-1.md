@@ -1,6 +1,7 @@
 # Kế hoạch Phase 1 (≤ 1 trang)
 
 > PRD-0 · Contract **v1.0** (sau này lên v1.3) · 60 phút · hạn tag `phase-1` **1:00**. Chi tiết chia lát: `TEAM.md`, `docs/prd/PRD-0.md` mục 6.2.
+> Ghi chú: tên người trong bảng lát (Đức, Nhài…) là kế hoạch **ban đầu**; bảng thành viên chốt cuối là 5 người, xem `TEAM.md`.
 
 ## Mục tiêu
 - Dựng repo chung: `TEAM.md`, `team_size` khớp, `check_team.py` báo `OK`.

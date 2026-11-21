@@ -36,7 +36,7 @@ python3 -m chonoi.play --export-leaderboard bang-xep-hang.json       # xuất b�
 | E | hái bông ở mặt nước · cập bến (kết thúc buổi) | nấu ở bếp · bưng món · phục vụ ở bàn |
 | Space | bắt đàn cá (khi ở dưới nước) | — |
 | Enter / E (lúc hết buổi) | sang buổi tối | ra chợ sắm đồ |
-| 1–6 (ở chợ) | mua nâng cấp | |
+| 1–7 (ở chợ) | mua nâng cấp | |
 | N (màn tiêu đề) | chơi mới từ ngày 1 | |
 | R / M | chơi lại buổi · tắt/bật tiếng (phụ đề vẫn hiện) | |
 | H | bật/tắt **tương phản cao** | bật/tắt **tương phản cao** |

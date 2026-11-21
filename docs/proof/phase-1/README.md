@@ -5,7 +5,7 @@
 
 | File | Nội dung | Cho thấy |
 |---|---|---|
-| `out-gather.jsonl` | `--mode gather --seed 1 --ticks 600` | Snapshot tick 0 (`pos [2,0]`, 6 nút N1–N4, 6 đàn cá), dòng cuối `end` |
+| `out-gather.jsonl` | `--mode gather --seed 1 --ticks 600` | Snapshot tick 0 (`pos [2,0]`, 4 nút N1–N4, 6 đàn cá), dòng cuối `end` |
 | `out-choke.jsonl` | gather fixture dưới nước, oxy 0 | Tick 1 `oxygen_empty {oxygen_ticks:0}` → tick 60 `choke {hp:2}` |
 | `out-faint.jsonl` | gather fixture HP 1, dưới nước, `zero_oxy_ticks:59` | Tick 1 `choke {hp:0}` → `faint {cause:"choke",lost:[…LIFO…],hp:0}` → `gather_end {reason:"fainted",inventory:{items:{}}}` |
 

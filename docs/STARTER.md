@@ -36,7 +36,7 @@ Nhóm được dùng **bất kỳ ngôn ngữ/engine nào**. Thứ duy nhất b�
 | Cửa sổ thử trên trình duyệt (`python3 -m chonoi.live`) | Đồ họa, âm thanh, menu, HUD hoàn chỉnh theo PRD |
 
 ### Nếu nhóm đổi sang ngôn ngữ khác
-1. Sửa `build_cmd`, `run_cmd` (hiện là `python3 -m chonoi.live --mode gather`), `headless_cmd` trong `game.contract.json` cho ngôn ngữ của nhóm.
+1. Sửa `build_cmd`, `run_cmd` (hiện là `python3 -m chonoi.play`), `headless_cmd` trong `game.contract.json` cho ngôn ngữ của nhóm.
 2. Nếu nhóm dùng CI: sửa bước **Build** và **Test** trong `.github/workflows/ci.yml` (cài runtime cần thiết); không dùng CI thì xóa file đó.
 3. **Giữ** `tests/test_smoke_p1.py`: đây là test **hộp đen**, chỉ chạy `headless_cmd` rồi đọc JSONL/file kho, nên dùng nguyên cho mọi ngôn ngữ. **Xóa** `chonoi/`, `tests/test_python_starter_units.py` và `tests/test_live.py` nếu không dùng; viết unit test bằng ngôn ngữ của nhóm.
 4. Vẫn phải qua cùng Test Contract: cùng seed → output giống từng byte.

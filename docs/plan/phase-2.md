@@ -1,6 +1,7 @@
 # Kế hoạch Phase 2 — Một ngày ở chợ nổi (≤ 1 trang)
 
 > Ticket TICKET-02 · Contract **v1.1** · 55 phút · hạn tag `phase-2` **1:55**. Chi tiết số liệu chuẩn + chia lát: `docs/prd/ticket-02.md`.
+> Ghi chú: tên người trong bảng lát (Đức, Nhài…) là kế hoạch **ban đầu**; bảng thành viên chốt cuối là 5 người, xem `TEAM.md`.
 
 ## Mục tiêu
 - Thay số Phase 1 bằng **tuning chuẩn v1.1**; thêm **6 nguyên liệu / 6 món** dữ liệu, **cá bơi/sinh**, **Cá Sấu**, **Máu/ngất**, **2 bếp/4 bàn**.

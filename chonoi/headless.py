@@ -93,7 +93,14 @@ def main(argv=None) -> int:
             mult = contract["tuning"]["score"]["reputation_multiplier"]
             score = int(sim.earned) + int(mult) * math.floor(sim.reputation)
             record(a.leaderboard, a.player_name, score, int(sim.days_completed), a.seed)
-    except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
+    except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim (mode day dựng QuanSim giữa chừng)
+        # Bảo đảm "thoát 2 TRƯỚC khi ghi đầu ra": xóa mọi output đã lỡ ghi.
+        for path in (a.out, a.inventory_out):
+            if path and os.path.exists(path):
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2
     except OSError as e:
