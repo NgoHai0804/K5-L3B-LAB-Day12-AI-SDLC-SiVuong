@@ -30,11 +30,10 @@ Kết quả: **PASS** cho cú pháp JavaScript trong `chonoi/web/index.html` và
 
 Lệnh chuẩn trong manifest dùng `python3`, nhưng alias đó báo `WinError 1920` trên máy Windows này. Chạy cùng suite bằng Python 3.13.2 hiện có (`python`) cho kết quả:
 
-- 88 test: **85 PASS, 3 FAIL**.
-- 1 lỗi có sẵn trước lát Sơn: `test_06_try_hold_reports_full_with_free_and_required` vì code gather có thêm khóa `kind` trong payload `hold_full`.
-- 2 lỗi là kỳ vọng Contract v1.0 đã cũ: `test_catch_is_a_v10_button_and_attack_is_not` và nhánh `attack` của `test_con_03_bad_input_exit_2`; Contract v1.1 yêu cầu `attack` là nút hợp lệ.
+- Sau khi merge `origin/main` tại `6cb9b9e`: 135 test, **133 PASS, 2 FAIL**.
+- Cả 2 lỗi là kỳ vọng Contract v1.0 đã cũ: `test_catch_is_a_v10_button_and_attack_is_not` và nhánh `attack` của `test_con_03_bad_input_exit_2`; Contract v1.1 yêu cầu `attack` là nút hợp lệ.
 
-Không sửa test khóa hoặc xóa trường contract để che ba lỗi này.
+Không sửa test khóa hoặc xóa trường contract để che hai lỗi này.
 
 ## Ranh giới tích hợp
 
