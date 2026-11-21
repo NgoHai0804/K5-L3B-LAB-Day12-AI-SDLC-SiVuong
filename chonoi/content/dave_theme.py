@@ -218,7 +218,44 @@ EVENT_DIALOGUES: Dict[str, List[str]] = {
     "quan_end": [
         "Má Tư: Tắt đèn dây nghỉ tay thôi Út ơi, mai sáng lại ra sông sớm!",
     ],
+    "spoiled": [
+        "Má Tư: Trời nóng quá, nguyên liệu ươn mất rồi Út ơi — mau lựa mẻ tươi hơn nấu cho khách!",
+    ],
+    "current_warning": [
+        "Út Sen: Nước lũ sắp đổ về rồi! Bám chắc hoặc ngoi lên tầng nông dưới 10 m thôi!",
+    ],
+    "current_start": [
+        "Út Sen: Á, dòng nước lũ mạnh quá trời!",
+    ],
+    "current_end": [
+        "Út Sen: Phù, con nước êm lại rồi, lặn tiếp thôi!",
+    ],
+    "reservation_announced": [
+        "Má Tư: Có khách đặt bàn trước hôm nay đó con, nhớ gom đúng món ngon nhất nha!",
+    ],
+    "reservation_served": [
+        "Khách đặt trước: Đúng món hẹn mà cá tươi rói luôn, xứng đáng trả gấp rưỡi!",
+    ],
+    "reservation_failed": [
+        "Khách đặt trước: Tiếc quá, hẹn trước mà không có món, đành hẹn dịp khác vậy...",
+    ],
 }
+
+
+FRESHNESS_TIERS = (
+    (80.0, "Tươi rói", "#4caf50"),
+    (50.0, "Tươi vừa", "#cddc39"),
+    (30.0, "Sắp ươn", "#ff9800"),
+    (0.0, "Đã ươn", "#ef5350"),
+)
+
+
+def freshness_badge(fresh: float) -> Dict[str, str]:
+    """Trả nhãn & màu hiển thị độ tươi cho HUD/client (không ảnh hưởng sim headless)."""
+    for threshold, label, color in FRESHNESS_TIERS:
+        if fresh >= threshold:
+            return {"label": label, "color": color}
+    return {"label": "Đã ươn", "color": "#ef5350"}
 
 
 CHONOISTA_TIERS = (
@@ -256,6 +293,8 @@ class ServiceReviewTracker:
     tipped_count: int = 0
     left_unhappy_count: int = 0
     burnt_count: int = 0
+    spoiled_count: int = 0
+    reservation_served_count: int = 0
     photos_taken: int = 0
     tip_streak: int = 0
     best_tip_streak: int = 0
@@ -291,6 +330,12 @@ class ServiceReviewTracker:
             self.burnt_count += 1
             self.tip_streak = 0
             self.review_likes = max(0, self.review_likes - 1)
+        elif event_name == "spoiled":
+            self.spoiled_count += 1
+        elif event_name == "reservation_served":
+            self.reservation_served_count += 1
+            self.review_likes += 3
+            self.highlights.append("Khách đặt trước khen nức nở món tươi 1.5×!")
         elif event_name == "photo":
             self.photos_taken += 1
             self.review_likes += 3
@@ -315,6 +360,8 @@ class ServiceReviewTracker:
             "tipped_count": self.tipped_count,
             "left_unhappy_count": self.left_unhappy_count,
             "burnt_count": self.burnt_count,
+            "spoiled_count": self.spoiled_count,
+            "reservation_served_count": self.reservation_served_count,
             "photos_taken": self.photos_taken,
             "best_tip_streak": self.best_tip_streak,
             "total_tips": self.total_tips,
