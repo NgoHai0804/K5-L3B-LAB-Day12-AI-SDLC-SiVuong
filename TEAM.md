@@ -8,7 +8,7 @@
 | Trần Minh Đức | tmduc23 | `sim/gather` | PO (giữ `docs/clarify.md`, hỏi giảng viên) | sim/gather (Hải) |
 | Bùi Quý Anh | buiquyanh9-ai | `web` · `client/ui` | QA lead | sim/quan |
 | Giang Sơn | son309 | `sim/gather` | PO (giữ `docs/clarify.md`, hỏi giảng viên) | client/ui |
-| Chấn Hồ | chanhochust | `headless` · `contract` | Scrum/Release | sim/day |
+| Trần Thị Nhài | chanhochust | `headless` · `contract` | Scrum/Release | sim/day |
 | Tùng | wewewewe07 | `qa` · `docs/proof` | QA phụ · ghi bằng chứng | web/ui |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
