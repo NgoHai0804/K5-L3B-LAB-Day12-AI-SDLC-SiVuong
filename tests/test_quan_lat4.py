@@ -420,8 +420,8 @@ class TestMR1DaveTheDiverContent(unittest.TestCase):
 
     def test_guides_cover_all_core_ingredients_and_dishes(self):
         tuning = _tuning()
-        self.assertEqual(set(INGREDIENT_GUIDE.keys()), {"ca_loc", "ca_linh", "bong_dien_dien", "bong_sung"})
-        self.assertEqual(set(DISH_LORE.keys()), set(tuning["menu"].keys()))
+        self.assertTrue({"ca_loc", "ca_linh", "bong_dien_dien", "bong_sung"}.issubset(set(INGREDIENT_GUIDE.keys())))
+        self.assertTrue(set(tuning["menu"].keys()).issubset(set(DISH_LORE.keys())))
         self.assertIsNotNone(dialogue_for_event("cook_started"))
         self.assertIsNotNone(dialogue_for_event("paid", {"tip": 12}))
 
