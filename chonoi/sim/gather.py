@@ -54,17 +54,19 @@ class GatherSim:
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
+        self.phase_tick = 0  # số bước đã chạy (1-based sau khi tăng ở đầu mỗi bước)
+        self.random_fish = bool(scenario.get("random_fish", True))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
         if "fish" in scenario:
             src_fish = scenario["fish"]
-        elif scenario.get("random_fish", True):
+        elif self.random_fish:
             src_fish = t["fish_initial"]
         else:
             src_fish = []
-        # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
+        # v1.1: cá BƠI mỗi bước trong dải độ sâu theo loài; sinh thêm theo lịch (AC-P2-02).
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
                       "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
         for coll in (self.nodes, self.fish):
@@ -99,6 +101,7 @@ class GatherSim:
     # --- một bước ---------------------------------------------------------------
     def step(self, inp):
         events = []
+        self.phase_tick += 1
         # 1. đồng hồ và hàng có sẵn: giảm bộ đếm, nút mọc lại
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
@@ -108,7 +111,9 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
-        # 2. bơi + chặn mép, rồi biên mặt nước -> oxy -> ngạt -> ngất
+        # 2. cá bơi (v1.1) + sinh thêm theo lịch
+        self._fish_step()
+        # 3. bơi + chặn mép, rồi biên mặt nước -> oxy -> ngạt -> ngất
         was_surface = self._at_surface()
         self._move(inp)
         self._water(events, was_surface)
@@ -160,6 +165,72 @@ class GatherSim:
         if not cands:
             return None
         return min(cands, key=lambda f: math.dist(self.pos, f["pos"]))
+
+    def _fish_step(self):
+        """Cá bơi mỗi bước trong dải độ sâu loài + sinh thêm theo lịch (AC-P2-02)."""
+        t = self.t
+        if self.phase_tick % int(t["fish_turn_every_ticks"]) == 0:
+            rng = self.rng.get("fish_move")
+            for f in sort_by_id(self.fish):  # đổi hướng TRƯỚC khi di chuyển
+                f["heading_deg"] = rng.random() * 360.0
+        step_len = float(t["fish_speed"]) / TICK
+        x_lo, x_hi = t["fish_x_bounds"]
+        for f in sort_by_id(self.fish):
+            d_lo, d_hi = t["fish_depth_bands"][f["kind"]]
+            self._advance_fish(f, step_len, x_lo, x_hi, d_lo, d_hi)
+        if self.random_fish and self.phase_tick % int(t["fish_spawn"]["every_ticks"]) == 0:
+            self._spawn_fish()
+
+    @staticmethod
+    def _advance_fish(f, dist, x_lo, x_hi, d_lo, d_hi):
+        """Bơi `dist` theo hướng; chạm mép thì phản xạ phần dư và đảo thành phần vuông góc."""
+        hx = math.cos(math.radians(f["heading_deg"]))
+        hd = math.sin(math.radians(f["heading_deg"]))
+        x, d = f["pos"]
+        # mở rộng biên cho đàn khởi tạo ngoài dải (scenario cũ) để không dịch chuyển đột ngột
+        x_lo, x_hi = min(x_lo, x), max(x_hi, x)
+        d_lo, d_hi = min(d_lo, d), max(d_hi, d)
+        nx = x + hx * dist
+        if nx < x_lo:
+            nx, hx = x_lo + (x_lo - nx), -hx
+        elif nx > x_hi:
+            nx, hx = x_hi - (nx - x_hi), -hx
+        nd = d + hd * dist
+        if nd < d_lo:
+            nd, hd = d_lo + (d_lo - nd), -hd
+        elif nd > d_hi:
+            nd, hd = d_hi - (nd - d_hi), -hd
+        f["pos"] = [nx, nd]
+        f["heading_deg"] = math.degrees(math.atan2(hd, hx)) % 360
+
+    def _spawn_candidates(self):
+        sp = self.t["fish_spawn"]
+        return [(float(x), float(d), kind)
+                for kind in sorted(sp["depths"]) for x in sp["x"] for d in sp["depths"][kind]]
+
+    def _spawn_fish(self):
+        """Sinh tối đa 1 đàn: điểm cách mọi đàn đang sống > min_dist; loài theo trọng số."""
+        sp = self.t["fish_spawn"]
+        if len(self.fish) >= int(sp["cap"]):
+            return
+        min_dist = float(sp["min_dist"])
+        cand = [p for p in self._spawn_candidates()
+                if all(math.dist((p[0], p[1]), tuple(f["pos"])) > min_dist for f in self.fish)]
+        if not cand:  # hết điểm -> bỏ lượt
+            return
+        weights = sp["weights"]
+        species = [k for k in sorted(weights) if any(p[2] == k for p in cand)]
+        rng = self.rng.get("fish_spawn")
+        roll, acc, chosen = rng.random() * sum(weights[k] for k in species), 0, species[-1]
+        for k in species:
+            acc += weights[k]
+            if roll < acc:
+                chosen = k
+                break
+        pts = sorted(p for p in cand if p[2] == chosen)
+        x, d, kind = pts[rng.randrange(len(pts))]  # chọn đều một điểm của loài
+        self.fish.append({"id": self.ids.new("F"), "kind": kind,
+                          "pos": [x, d], "heading_deg": rng.random() * 360.0})
 
     def _in_dock(self) -> bool:
         return math.dist(self.pos, self.t["dock_pos"]) <= self.t["dock_radius"]
