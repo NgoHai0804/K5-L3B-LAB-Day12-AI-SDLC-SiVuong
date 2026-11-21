@@ -1,6 +1,6 @@
 # TEAM
 
-**Tên nhóm:** cho-noi-5  **Số người:** 6  (khớp `team_size` trong `game.contract.json`)
+**Tên nhóm:** SiVuong  **Số người:** 6  (khớp `team_size` trong `game.contract.json`)
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
