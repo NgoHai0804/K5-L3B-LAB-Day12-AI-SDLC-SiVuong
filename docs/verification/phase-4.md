@@ -11,6 +11,8 @@
 | AC-P4-07 Phụ đề SFX | Mỗi tiếng (bia, hái, bắt, tiền, cảnh báo…) đẩy phụ đề qua `say()` và vẽ bằng `drawCaptions()` → hiện cả khi tắt tiếng (M) | `chonoi/web/index.html` (`CAPS`,`say`,`SUB`,`drawCaptions`), `docs/proof/phase-4/subtitle_soundoff.png` | Đạt |
 | AC-P4-08 Đóng gói & tài liệu | Tag `phase-4`, Release `v1.0.0`, `docs/verification/phase-4.md`, `docs/retro.md`, `docs/members/` (6 phản tư: `NgoHai0804.md`, `tmduc23.md`, `chanhochust.md`, `buiquyanh9-ai.md`, `son309.md`, `wewewewe07.md`), `CHANGELOG.md`, `docs/clarify.md`, `docs/ai-usage-log.md` cập nhật; TEAM.md điền (6 người) khớp `team_size` | `git tag phase-4`, Release `v1.0.0`, các file trên | Đạt (tag + tài liệu); Release GitHub phụ thuộc quyền/`gh` — xem `docs/release/v1.0.0.md` |
 
+| AC-P4-09 Gộp bản chơi cuối (sáng tạo, tắt ở headless) | Toàn bộ test + smoke 2 tiến trình + tất định gather/quan/day + soak + bench + mở `chonoi.play` | `docs/proof/phase-4/final-merge-smoke.md`, `tests/test_play.py::test_headless_has_no_creative_extras` | Đạt (122 test OK) |
+
 ## Đánh giá ngắn
 - Yêu cầu nào đạt / chưa đạt: lõi Phase 4 (v1.3, bench, soak, leaderboard, cảnh báo, phụ đề) **đạt** và có test tự động. Ảnh bằng chứng chế độ thường của cảnh báo chưa chốt nội dung (ghi trung thực ở AC-P4-06).
 - Điều cần chỉnh cho phase sau: chụp lại ảnh cảnh báo ở chế độ thường ổn định hơn (cửa sổ cảnh báo ngắn), và tự động hoá việc tạo Release trên CI.

@@ -40,6 +40,9 @@ python3 -m chonoi.play --export-leaderboard bang-xep-hang.json       # xuất b�
 | N (màn tiêu đề) | chơi mới từ ngày 1 | |
 | R / M | chơi lại buổi · tắt/bật tiếng (phụ đề vẫn hiện) | |
 | H | bật/tắt **tương phản cao** | bật/tắt **tương phản cao** |
+| Q / bấm chuột vào ô giỏ | thả món nhặt nhầm | — |
+| C | — | đóng quán sớm (chỉ khi không còn khách) |
+| S·↓ / Space·E / A↔D | — | minigame sơ chế khi bắt đầu nấu: chặt cá / băm rau / đảo nồi |
 
 ## Luật chính và cách tính điểm
 
@@ -70,6 +73,13 @@ Lõi chạy theo **Test Contract v1.3** (Phase 2 số chuẩn + vòng Ngày, Pha
 - **Đồ họa vẽ bằng code ở độ phân giải gốc** (không dùng asset ngoài, không còn lớp pixel): sông nước xanh trong có tia nắng, gợn sáng, hạt lơ lửng, đáy cát/đá/san hô/rong; cá linh, cá lóc, cá kèo có vây, vảy, mắt; Cá Sấu Năm Chèo có vảy lưng, hàm há khi đuổi; Út Sen có bình oxy, kính lặn, ống thở, chân vịt. Buổi tối là **quán dạng quầy bar**: tường gỗ, cửa sổ nhìn ra sông đêm, kệ nguyên liệu (thanh độ tươi), mái lá dừa, đèn lồng, 2 bếp đất, 4 quầy có ghế đẩu, khách ngồi quầy với bong bóng gọi món, phiếu order treo trên thanh ray.
 - **HUD**: Máu, Oxy (đỏ nhấp nháy dưới 25%), Sức, đồng hồ (đỏ khi còn ≤ 30 s), độ sâu theo vùng, giỏ theo ô có thanh độ tươi và nhãn "ươn", danh sách Má Tư dặn (đã lấy/cần), "Thủy quái!" + viền tím, "Hết hơi!". Quán: phiếu order có kiên nhẫn, kho theo loại (khả dụng / giữ / ươn / độ tươi tốt nhất), bếp, món trên tay và giá đã chốt, thực đơn hôm nay. Chữ ≥ 16–18 px.
 - **Trợ năng & phụ đề (Phase 4):** ba cảnh báo người chơi — sáng "THỦY QUÁI GẦN ĐÂY!", "SẮP HẾT OXY"; tối "KHÁCH SẮP GIẬN!" (khách còn < 25% kiên nhẫn); phím **H** bật **chế độ tương phản cao** (banner đen/viền trắng, giảm hiệu ứng nhấp nháy, có huy hiệu "TƯƠNG PHẢN CAO"); **phụ đề SFX** (`say`/`drawCaptions`) hiện chữ cho mọi tiếng kể cả khi tắt tiếng (M).
+- **Cơ chế thêm ở cửa sổ chơi (bật qua `LiveGame.EXTRAS`, headless không truyền `extras`):**
+  - *Thả đồ* (`extras.drop`, phím Q hoặc bấm vào ô giỏ): bỏ một cá thể khỏi giỏ, phát `dropped`.
+  - *Đóng quán sớm* (`extras.early_close`, phím C): chỉ khi quán vắng khách; `quan_end` có `reason:"early"`.
+  - *Minigame sơ chế* (`extras.prep`): chặt cá / băm rau / đảo nồi ngay khi bắt đầu nấu; chất lượng 0–1 bớt tối đa 40% thời gian nấu, mỗi món một lần, phát `prep_done`.
+  - *Va chạm* (`extras.collide`): không đi xuyên bếp/quầy nhưng vẫn trong tầm tương tác 1.5 m.
+  - *Món phụ* (`extra_dishes`, 6 món rẻ nấu nhanh như cá linh chiên, cháo cá lóc…) chỉ thêm vào thực đơn bản chơi.
+  - *Nhiệm vụ phụ* mỗi Ngày (3 nhiệm vụ tất định theo seed + Ngày, có thưởng tiền), lời thoại khách và lời tự nhủ của Út Sen.
 - **Bằng chứng lõi vẫn đúng:** `tests/test_rules_p1.py`, `tests/test_smoke_p1.py` (regression, đã chuyển sang kho cá thể), `tests/test_rules_p2p3.py` (độ tươi, giữ lại khi ươn, giá theo tươi, cá bơi/sinh, Cá Sấu, Shop, pause, vòng Ngày, tất định) chạy hộp đen qua headless; `tests/test_play.py` chạy trọn 5 Ngày, Shop, lưu/tải, pause, sprint; `tests/test_phase4.py` kiểm v1.3, bench, soak, bảng xếp hạng và dấu vết trợ năng trong `index.html`.
 
 ---

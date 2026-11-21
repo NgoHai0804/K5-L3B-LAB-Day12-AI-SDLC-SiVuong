@@ -15,7 +15,8 @@ Giỏ là danh sách cá thể {id, kind, fresh} theo thứ tự vào giỏ (m�
 Độ tươi giữ bằng Fraction: −0.5/s = −1/120 mỗi tick, kẹp đáy 0; ươn khi < 30.
 
 Sáng tạo (CHỈ khi truyền `extras`, headless không bao giờ truyền): sprint — giữ nút `sprint` để bơi ×1.5,
-oxy dưới nước tốn ×1.5, tiêu thể lực; hết thể lực phải hồi tới 30% mới sprint lại.
+oxy dưới nước tốn ×1.5, tiêu thể lực; hết thể lực phải hồi tới 30% mới sprint lại. Thả đồ (`extras.drop`):
+`inp.drop` = id cá thể hoặc True (món nhặt sau cùng) -> bỏ khỏi giỏ, phát `dropped`.
 """
 
 import math
@@ -214,6 +215,9 @@ class GatherSim:
         # 5. bắt cá
         if inp.pressed("catch") and self.catch_cd_ticks == 0 and not now_surface:
             self._catch(events)
+        # 5b. (sáng tạo) thả đồ nhặt nhầm
+        if self.extras.get("drop") and getattr(inp, "drop", None):
+            self._drop(inp.drop, events)
         # 6. hết giờ; còn giờ thì cá bơi, sinh thêm
         if self.time_left_ticks <= 0:
             self._finish("time", events)
@@ -382,6 +386,18 @@ class GatherSim:
         self.fish = [x for x in self.fish if x is not f]
         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
         events.append(("fish_caught", {"fish_id": f["id"], "kind": f["kind"], "yield": y}))
+
+    def _drop(self, which, events):
+        if not self.hold:
+            return
+        if which is True:
+            it = self.hold[-1]
+        else:
+            it = next((x for x in self.hold if x["id"] == which), None)
+            if it is None:
+                return
+        self.hold = [x for x in self.hold if x is not it]
+        events.append(("dropped", {"item_id": it["id"], "kind": it["kind"], "pos": list(self.pos)}))
 
     # --- cá bơi / sinh -----------------------------------------------------------
     def _swim_fish(self):

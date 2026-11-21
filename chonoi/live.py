@@ -38,7 +38,7 @@ class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
     # Sáng tạo của nhóm (chỉ cửa sổ chơi, headless không bật): sprint khi giữ Shift.
-    EXTRAS = {"sprint": {}}
+    EXTRAS = {"sprint": {}, "drop": True, "early_close": True, "prep": True, "collide": True}
 
     def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None):
         self._args = (mode, tuning, scenario, seed, inventory)
@@ -125,11 +125,24 @@ class LiveGame:
                 if not isinstance(body[b], bool):
                     raise ValueError(f"{b} phải là boolean")
                 buttons[b] = body[b]
-        presses = [p for p in ("pause", "shop_done") if body.get(p) is True]
+        presses = [p for p in ("pause", "shop_done", "close_shift") if body.get(p) is True]
+        drop = body.get("drop")
+        if drop is not None and not (drop is True or (isinstance(drop, str) and 0 < len(drop) <= 32)):
+            raise ValueError("drop phải là true hoặc id cá thể")
+        prep = body.get("prep")
+        if prep is not None:
+            if not (isinstance(prep, dict) and isinstance(prep.get("stove_id"), str)
+                    and isinstance(prep.get("quality"), (int, float)) and not isinstance(prep.get("quality"), bool)):
+                raise ValueError("prep phải là {stove_id, quality}")
+            prep = {"stove_id": prep["stove_id"], "quality": float(prep["quality"])}
         with self._lock:
             self.inputs.set(move, **buttons)
             for p in presses:
                 self.inputs.press(p)
+            if drop is not None:
+                self.inputs.drop(drop)
+            if prep is not None:
+                self.inputs.prep(prep)
 
     def restart(self):
         with self._lock:
